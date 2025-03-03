@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_vip_reset_gen_block/intel_vip_reset_gen_block_hw.tcl" />
+</library>

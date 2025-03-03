@@ -1,0 +1,162 @@
+###################################################################################
+# Copyright (C) 2025 Intel Corporation
+#
+# This software and the related documents are Intel copyrighted materials, and
+# your use of them is governed by the express license under which they were
+# provided to you ("License"). Unless the License provides otherwise, you may
+# not use, modify, copy, publish, distribute, disclose or transmit this software
+# or the related documents without Intel's prior written permission.
+#
+# This software and the related documents are provided as is, with no express
+# or implied warranties, other than those that are expressly stated in the License.
+###################################################################################
+
+@@ set entity_name  $param0
+@@ set v_board_name $param1
+@@ set hps_init     $param2
+
+@@ if {$v_board_name == "AGX_5E_Si_Devkit"} {
+    set_location_assignment PIN_CF121 -to usb31_io_vbus_det
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_vbus_det
+    set_location_assignment PIN_CG135 -to usb31_io_flt_bar
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_flt_bar
+    set_location_assignment PIN_CF118 -to usb31_io_usb31_id
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_usb31_id
+    set_location_assignment PIN_CL128 -to usb31_io_usb_ctrl[1]
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_usb_ctrl[1]
+
+@@ } elseif {$v_board_name == "AGX_5E_Modular_Devkit"} {
+    set_location_assignment PIN_BU31 -to usb31_io_vbus_det
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_vbus_det
+    set_location_assignment PIN_BP22 -to usb31_io_flt_bar
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_flt_bar
+    set_location_assignment PIN_BR22 -to usb31_io_usb31_id
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_usb31_id
+    set_location_assignment PIN_BM28 -to usb31_io_usb_ctrl[1]
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_usb_ctrl[1]
+@@ } else {
+    set_location_assignment PIN_CF121 -to usb31_io_vbus_det
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_vbus_det
+    set_location_assignment PIN_CG135 -to usb31_io_flt_bar
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_flt_bar
+    set_location_assignment PIN_CF118 -to usb31_io_usb31_id
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_usb31_id
+    set_location_assignment PIN_CL128 -to usb31_io_usb_ctrl[1]
+    set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to usb31_io_usb_ctrl[1]	
+@@ }
+
+set_location_assignment PIN_AP120 -to usb31_phy_refclk_p_clk
+set_instance_assignment -name IO_STANDARD "CURRENT MODE LOGIC (CML)" -to usb31_phy_refclk_p_clk
+set_location_assignment PIN_AM135 -to usb31_phy_rx_serial_p
+set_instance_assignment -name IO_STANDARD "HIGH SPEED DIFFERENTIAL I/O" -to usb31_phy_rx_serial_p
+set_location_assignment PIN_AM133 -to usb31_phy_rx_serial_n
+set_instance_assignment -name IO_STANDARD "HIGH SPEED DIFFERENTIAL I/O" -to usb31_phy_rx_serial_n
+set_location_assignment PIN_AN129 -to usb31_phy_tx_serial_p
+set_instance_assignment -name IO_STANDARD "HIGH SPEED DIFFERENTIAL I/O" -to usb31_phy_tx_serial_p
+set_location_assignment PIN_AN126 -to usb31_phy_tx_serial_n
+set_instance_assignment -name IO_STANDARD "HIGH SPEED DIFFERENTIAL I/O" -to usb31_phy_tx_serial_n
+
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_ref_clk
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_jtag_tck
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_jtag_tms
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_jtag_tdo
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_jtag_tdi
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to hps_jtag_tdo
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_jtag_tck
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_jtag_tms
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_jtag_tdi
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_clk
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_stp
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_dir
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_nxt
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_stp
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_clk
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_dir
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_nxt
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data0
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data0
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data0
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data1
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data1
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data1
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data2
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data2
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data2
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data3
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data3
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data3
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data4
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data4
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data4
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data5
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data5
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data5
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data6
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data6
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data6
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_usb1_data7
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_usb1_data7
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_usb1_data7
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_tx_clk
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_tx_ctl
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_rx_clk
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_rx_ctl
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to hps_emac2_tx_clk
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_emac2_tx_ctl
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_emac2_rx_clk
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_emac2_rx_ctl
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_rxd0
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_txd0
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_emac2_txd0
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_emac2_rxd0
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_rxd1
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_txd1
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_emac2_txd1
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_emac2_rxd1
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_rxd2
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_txd2
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_emac2_txd2
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_emac2_rxd2
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_rxd3
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_emac2_txd3
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to hps_emac2_txd3
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_emac2_rxd3
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_mdio2_mdio
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_mdio2_mdc
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to hps_mdio2_mdio
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to hps_mdio2_mdc
+set_instance_assignment -name AUTO_OPEN_DRAIN_PINS ON -to hps_mdio2_mdio
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_mdio2_mdio
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_uart0_tx
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_uart0_rx
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to hps_uart0_tx
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_uart0_rx
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_gpio0_io0
+set_instance_assignment -name CURRENT_STRENGTH_NEW 2MA -to hps_gpio0_io0
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_gpio0_io0
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_gpio0_io1
+set_instance_assignment -name CURRENT_STRENGTH_NEW 2MA -to hps_gpio0_io1
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_gpio0_io1
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_gpio0_io11
+set_instance_assignment -name CURRENT_STRENGTH_NEW 2MA -to hps_gpio0_io11
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_gpio0_io11
+set_instance_assignment -name IO_STANDARD "1.8 V" -to hps_gpio1_io3
+set_instance_assignment -name CURRENT_STRENGTH_NEW 2MA -to hps_gpio1_io3
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to hps_gpio1_io3
+
+set_global_assignment -name HPS_DAP_NO_CERTIFICATE on
+
+@@ if {$v_board_name == "AGX_5E_Si_Devkit"} {
+    set_global_assignment -name USE_HPS_COLD_RESET SDM_IO11
+    set_global_assignment -name USE_CONF_DONE SDM_IO12
+@@ } elseif {$v_board_name == "AGX_5E_Modular_Devkit"} {
+    set_global_assignment -name USE_HPS_COLD_RESET SDM_IO10
+    set_global_assignment -name USE_CONF_DONE SDM_IO16
+@@ } else {
+    set_global_assignment -name USE_HPS_COLD_RESET SDM_IO11
+    set_global_assignment -name USE_CONF_DONE SDM_IO12
+@@ }
+
+set_global_assignment -name HPS_INITIALIZATION "$hps_init"
+set_global_assignment -name HPS_DAP_SPLIT_MODE "SDM PINS"
+set_global_assignment -name USE_CONF_DONE SDM_IO16
