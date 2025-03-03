@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_dip_clk_check/intel_dip_clk_check_hw.tcl" />
+</library>
