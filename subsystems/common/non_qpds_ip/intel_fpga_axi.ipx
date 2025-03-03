@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_fpga_axil2apb/intel_fpga_axil2apb_hw.tcl" />
+<index file="intel_fpga_axi_gpio/intel_fpga_axi_gpio_hw.tcl" />
+</library>

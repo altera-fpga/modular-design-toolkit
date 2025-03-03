@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_fpga_shared_mem/intel_fpga_shared_mem_hw.tcl"/>
+</library>
