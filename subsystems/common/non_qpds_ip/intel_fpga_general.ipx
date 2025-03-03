@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_fpga_pb_debounce/intel_fpga_pb_debounce_hw.tcl" />
+</library>

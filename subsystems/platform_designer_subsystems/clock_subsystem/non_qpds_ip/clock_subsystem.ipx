@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_iopll_locked_shim/intel_iopll_locked_shim_hw.tcl" />
+<index file="intel_issp_reset_shim/intel_issp_reset_shim_hw.tcl" />
+<index file="intel_vip_reset_sync_block/intel_vip_reset_sync_block_hw.tcl" />
+<index file="intel_vvp_reset_extend/intel_vvp_reset_extend_hw.tcl" />
+</library>
