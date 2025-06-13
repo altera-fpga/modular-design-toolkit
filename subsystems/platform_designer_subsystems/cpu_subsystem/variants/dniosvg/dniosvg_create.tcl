@@ -1,11 +1,11 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
@@ -21,6 +21,9 @@ set_shell_parameter PERIPHERAL_REGA_SIZE    {536870912}
 set_shell_parameter PERIPHERAL_REGB_BASE    {603979776}
 set_shell_parameter PERIPHERAL_REGB_SIZE    {33554432}
 set_shell_parameter SYSID                   {0x006047fe}
+
+set_shell_parameter NIOS_DCACHE_SIZE_BYTES  {16384}
+set_shell_parameter NIOS_ICACHE_SIZE_BYTES  {16384}
 
 set_shell_parameter MEMORY_SIZE             "0x00080000"
 
@@ -144,6 +147,9 @@ proc create_dniosvg_subsystem {} {
   set v_peripheral_regb_base    [get_shell_parameter PERIPHERAL_REGB_BASE]
   set v_peripheral_regb_size    [get_shell_parameter PERIPHERAL_REGB_SIZE]
 
+  set v_nios_dcache_size_bytes  [get_shell_parameter NIOS_DCACHE_SIZE_BYTES]
+  set v_nios_icache_size_bytes  [get_shell_parameter NIOS_ICACHE_SIZE_BYTES]
+
   set v_sysid                   [get_shell_parameter SYSID]
 
   set v_memory_size             [get_shell_parameter MEMORY_SIZE]
@@ -203,62 +209,189 @@ proc create_dniosvg_subsystem {} {
 
   #---------------------------------------------------------------
   # cpu
+  set_instance_parameter_value cpu enableFPU                    {0}
+  set_instance_parameter_value cpu enableBranchPrediction       {1}
+  set_instance_parameter_value cpu disableFsqrtFdiv             {0}
+  set_instance_parameter_value cpu hartId                       {0}
   set_instance_parameter_value cpu enableDebug                  {1}
+  set_instance_parameter_value cpu enableDebugReset             {0}
+
+  set_instance_parameter_value cpu enableLockStep               {0}
+  set_instance_parameter_value cpu Blind_Window_Period          {1000}
+  set_instance_parameter_value cpu Default_Timeout_Period       {255}
+
+  set_instance_parameter_value cpu useResetReq                  {0}
   set_instance_parameter_value cpu resetSlave                   {cpu_ram.axi_s1}
-  set_instance_parameter_value cpu dataCacheSize                {16384}
-  set_instance_parameter_value cpu instCacheSize                {16384}
+  set_instance_parameter_value cpu resetOffset                  {0}
+
+  set_instance_parameter_value cpu enableCoreLevelInterruptController   {0}
+  set_instance_parameter_value cpu basicInterruptMode                   {0}
+  set_instance_parameter_value cpu basicShadowRegisterFiles             {0}
+
+  set_instance_parameter_value cpu dataCacheSize                ${v_nios_dcache_size_bytes}
+  set_instance_parameter_value cpu instCacheSize                ${v_nios_icache_size_bytes}
   set_instance_parameter_value cpu peripheralRegionABase        ${v_peripheral_rega_base}
   set_instance_parameter_value cpu peripheralRegionASize        ${v_peripheral_rega_size}
   set_instance_parameter_value cpu peripheralRegionBBase        ${v_peripheral_regb_base}
   set_instance_parameter_value cpu peripheralRegionBSize        ${v_peripheral_regb_size}
 
+  set_instance_parameter_value cpu itcm1Size                    {0}
+  set_instance_parameter_value cpu itcm1Base                    {0}
+  set_instance_parameter_value cpu itcm1InitFile                {""}
+  set_instance_parameter_value cpu itcm2Size                    {0}
+  set_instance_parameter_value cpu itcm2Base                    {0}
+  set_instance_parameter_value cpu itcm2InitFile                {""}
+
+  set_instance_parameter_value cpu dtcm1Size                    {0}
+  set_instance_parameter_value cpu dtcm1Base                    {0}
+  set_instance_parameter_value cpu dtcm1InitFile                {""}
+  set_instance_parameter_value cpu dtcm2Size                    {0}
+  set_instance_parameter_value cpu dtcm2Base                    {0}
+  set_instance_parameter_value cpu dtcm2InitFile                {""}
+
+  set_instance_parameter_value cpu enableECCLite                {0}
+  set_instance_parameter_value cpu enableECCFull                {0}
+
   if {${v_cpu2ram_bridge} == "1"} {
     # cpu_axi_bridge
-    set_instance_parameter_value cpu_axi_bridge AXI_VERSION       {AXI4}
-    set_instance_parameter_value cpu_axi_bridge DATA_WIDTH        32
-    set_instance_parameter_value cpu_axi_bridge ADDR_WIDTH        19
-    set_instance_parameter_value cpu_axi_bridge USE_S0_AWLOCK     1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_AWCACHE    1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_AWPROT     1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_WLAST      1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_BRESP      1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_ARLOCK     1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_ARCACHE    1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_ARPROT     1
-    set_instance_parameter_value cpu_axi_bridge USE_S0_RRESP      1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_AWID       1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_AWLEN      1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_AWSIZE     1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_AWBURST    1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_AWLOCK     1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_AWCACHE    1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_WSTRB      1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_BID        1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_BRESP      1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_ARREGION   1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_ARLEN      1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_ARSIZE     1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_ARBURST    1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_ARLOCK     1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_ARCACHE    1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_RID        1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_RRESP      1
-    set_instance_parameter_value cpu_axi_bridge USE_M0_RLAST      1
+    set_instance_parameter_value cpu_axi_bridge SYNC_RESET                  {0}
+    set_instance_parameter_value cpu_axi_bridge BACKPRESSURE_DURING_RESET   {0}
+
+    set_instance_parameter_value cpu_axi_bridge AXI_VERSION                 {AXI4}
+    set_instance_parameter_value cpu_axi_bridge ACE_LITE_SUPPORT            {0}
+    set_instance_parameter_value cpu_axi_bridge DATA_WIDTH                  {32}
+    set_instance_parameter_value cpu_axi_bridge ADDR_WIDTH                  {19}
+
+    set_instance_parameter_value cpu_axi_bridge WRITE_ADDR_USER_WIDTH       {64}
+    set_instance_parameter_value cpu_axi_bridge READ_ADDR_USER_WIDTH        {64}
+    set_instance_parameter_value cpu_axi_bridge WRITE_DATA_USER_WIDTH       {16}
+    set_instance_parameter_value cpu_axi_bridge READ_DATA_USER_WIDTH        {16}
+    set_instance_parameter_value cpu_axi_bridge WRITE_RESP_USER_WIDTH       {16}
+
+    set_instance_parameter_value cpu_axi_bridge BITSPERBYTE                 {0}
+    set_instance_parameter_value cpu_axi_bridge SAI_WIDTH                   {1}
+    set_instance_parameter_value cpu_axi_bridge UNTRANSLATED_TXN            {0}
+    set_instance_parameter_value cpu_axi_bridge SID_WIDTH                   {1}
+
+    set_instance_parameter_value cpu_axi_bridge S0_ID_WIDTH                           {8}
+    set_instance_parameter_value cpu_axi_bridge WRITE_ACCEPTANCE_CAPABILITY           {16}
+    set_instance_parameter_value cpu_axi_bridge READ_ACCEPTANCE_CAPABILITY            {16}
+    set_instance_parameter_value cpu_axi_bridge COMBINED_ACCEPTANCE_CAPABILITY        {16}
+    set_instance_parameter_value cpu_axi_bridge READ_DATA_REORDERING_DEPTH            {1}
+
+    set_instance_parameter_value cpu_axi_bridge USE_S0_AWREGION         {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_AWLOCK           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_AWCACHE          {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_AWQOS            {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_AWPROT           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_AWUSER           {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_S0_WLAST            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_WUSER            {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_S0_BRESP            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_BUSER            {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ARREGION         {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ARLOCK           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ARCACHE          {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ARQOS            {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ARPROT           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ARUSER           {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_S0_RRESP            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_RUSER            {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_S0_ADDRCHK          {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_SAI              {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_DATACHK          {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_POISON           {0}
+    set_instance_parameter_value cpu_axi_bridge USE_S0_USER_DATA        {0}
+
+    set_instance_parameter_value cpu_axi_bridge M0_ID_WIDTH                           {8}
+    set_instance_parameter_value cpu_axi_bridge WRITE_ISSUING_CAPABILITY              {16}
+    set_instance_parameter_value cpu_axi_bridge READ_ISSUING_CAPABILITY               {16}
+    set_instance_parameter_value cpu_axi_bridge COMBINED_ISSUING_CAPABILITY           {16}
+    set_instance_parameter_value cpu_axi_bridge ENABLE_CONCURRENT_SUBORDINATE_ACCESS  {0}
+    set_instance_parameter_value cpu_axi_bridge NO_REPEATED_IDS_BETWEEN_SUBORDINATES  {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWID             {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWREGION         {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWLEN            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWSIZE           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWBURST          {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWLOCK           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWCACHE          {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWQOS            {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWUSER           {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_AWUNIQUE         {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_M0_WSTRB            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_WUSER            {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_M0_BID              {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_BRESP            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_BUSER            {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARID             {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARREGION         {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARLEN            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARSIZE           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARBURST          {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARLOCK           {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARCACHE          {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARQOS            {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ARUSER           {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_M0_RID              {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_RRESP            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_RLAST            {1}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_RUSER            {0}
+
+    set_instance_parameter_value cpu_axi_bridge USE_M0_ADDRCHK          {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_SAI              {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_DATACHK          {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_USER_DATA        {0}
+    set_instance_parameter_value cpu_axi_bridge USE_M0_POISON           {0}
+
 
   }
 
   #---------------------------------------------------------------
   # cpu_ram
-  set_instance_parameter_value cpu_ram   AXI_interface                1
-  set_instance_parameter_value cpu_ram   interfaceType                1
-  set_instance_parameter_value cpu_ram   idWidth                      3
-  set_instance_parameter_value cpu_ram   memorySize                   ${v_memory_size}
-  set_instance_parameter_value cpu_ram   initMemContent               1
-  set_instance_parameter_value cpu_ram   useNonDefaultInitFile        0
-  set_instance_parameter_value cpu_ram   initializationFileName       ""
-  set_instance_parameter_value cpu_ram   dataWidth                    32
+  set_instance_parameter_value cpu_ram   AXI_interface                          {1}
+  set_instance_parameter_value cpu_ram   interfaceType                          {1}
+  set_instance_parameter_value cpu_ram   idWidth                                {3}
+  set_instance_parameter_value cpu_ram   memorySize                             ${v_memory_size}
+  set_instance_parameter_value cpu_ram   initMemContent                         {1}
+  set_instance_parameter_value cpu_ram   useNonDefaultInitFile                  {0}
+  set_instance_parameter_value cpu_ram   initializationFileName                 {""}
+  set_instance_parameter_value cpu_ram   dataWidth                              {32}
+
+  set_instance_parameter_value cpu_ram   allowInSystemMemoryContentEditor       {0}
+  set_instance_parameter_value cpu_ram   blockType                              {AUTO}
+  set_instance_parameter_value cpu_ram   clockEnable                            {0}
+  set_instance_parameter_value cpu_ram   copyInitFile                           {0}
+  set_instance_parameter_value cpu_ram   dualPort                               {0}
+  set_instance_parameter_value cpu_ram   ecc_check                              {0}
+  set_instance_parameter_value cpu_ram   ecc_encoder_bypass                     {0}
+  set_instance_parameter_value cpu_ram   ecc_pipeline_reg                       {0}
+  set_instance_parameter_value cpu_ram   enPRInitMode                           {0}
+  set_instance_parameter_value cpu_ram   enableDiffWidth                        {0}
+  set_instance_parameter_value cpu_ram   gui_debugaccess                        {0}
+  set_instance_parameter_value cpu_ram   instanceID                             {NONE}
+  set_instance_parameter_value cpu_ram   lvl1OutputRegA                         {0}
+  set_instance_parameter_value cpu_ram   lvl1OutputRegB                         {0}
+  set_instance_parameter_value cpu_ram   lvl2OutputRegA                         {0}
+  set_instance_parameter_value cpu_ram   lvl2OutputRegB                         {0}
+  set_instance_parameter_value cpu_ram   poison_enable                          {0}
+  set_instance_parameter_value cpu_ram   readDuringWriteMode_Mixed              {DONT_CARE}
+  set_instance_parameter_value cpu_ram   resetrequest_enabled                   {1}
+  set_instance_parameter_value cpu_ram   singleClockOperation                   {0}
+  set_instance_parameter_value cpu_ram   tightly_coupled_ecc                    {0}
+  set_instance_parameter_value cpu_ram   writable                               {1}
   if {${v_cpu2ram_bridge} == "1"} {
-      set_instance_parameter_value cpu_ram   idWidth                  8
+      set_instance_parameter_value cpu_ram   idWidth                            {8}
   }
 
   #---------------------------------------------------------------
@@ -266,6 +399,7 @@ proc create_dniosvg_subsystem {} {
   set_instance_parameter_value  cpu_jtag_uart   writeBufferDepth            64
   set_instance_parameter_value  cpu_jtag_uart   writeIRQThreshold           8
   set_instance_parameter_value  cpu_jtag_uart   useRegistersForWriteBuffer  0
+  set_instance_parameter_value  cpu_jtag_uart   printingMethod              0
   set_instance_parameter_value  cpu_jtag_uart   readBufferDepth             64
   set_instance_parameter_value  cpu_jtag_uart   readIRQThreshold            8
   set_instance_parameter_value  cpu_jtag_uart   useRegistersForReadBuffer   0

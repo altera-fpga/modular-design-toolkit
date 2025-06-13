@@ -10,6 +10,7 @@
      preset_category="">
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_WR_DBI_EN" value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_DQ_X_TGT_WR" value="4" />
+   <parameter name="EMIF_SHOW_INTERNAL_SETTINGS" value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCCD_L_NS" value="5.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TDSS_NS" value="0.18" />
    <parameter
@@ -37,6 +38,9 @@
        value="SERIES_34_OHM_CAL" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCCD_DLR_NS" value="5.0" />
    <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_MARGIN"
+       value="false" />
+   <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_OPERATING_FREQ_MHZ_AUTOSET_EN"
        value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRFC_NS" value="550.0" />
@@ -45,11 +49,15 @@
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCK_CL_CWL_MIN_NS"
        value="1.25" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TXS_DLL_NS" value="597.0" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|INTERFACES"
+       value="refclk_in        clock    sink,refclk_out       clock    source,refclk_in_gpio   conduit  end,refclk_out_gpio  conduit  start" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRRD_L_NS" value="6.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CWL_CYC" value="9.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWTR_S_CRC_DM_NS"
        value="5.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_REQ" value="true" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_FORCE_MIN_4_AC_LANES_EN"
        value="false" />
@@ -62,6 +70,9 @@
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWR_NS" value="15.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TFAW_NS" value="35.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWTR_S_NS" value="2.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|HPS_EMIF_RZQ_SHARING"
+       value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_PAGE_SIZE" value="1024.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE"
@@ -104,6 +115,7 @@
        name="emif_io96b_hps|emif_0_ddr4comp|ANALOG_PARAM_DERIVATION_PARAM_NAME"
        value="" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TQSH_NS" value="0.4" />
+   <parameter name="EMIF_REF_CLK_SHARING" value="false" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_TEMPERATURE_GRADE"
        value="EXTENDED" />
@@ -143,6 +155,9 @@
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_DIE_DQ_WIDTH" value="8" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_AC_PARITY_EN" value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRCD_NS" value="15.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_W2W_SAMECS_CYC"
+       value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_REFCLK_FREQ_MHZ"
        value="150.0" />
@@ -193,6 +208,9 @@
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWR_CRC_DM_NS" value="5.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TMRD_NS" value="8.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWLS_NS" value="0.13" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2R_SAMECS_CYC"
+       value="0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CLAMSHELL_EN" value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|DIAG_EXTRA_PARAMETERS" value="" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TFAW_DLR_NS" value="20.0" />
@@ -207,6 +225,9 @@
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_AC_OUTPUT_IO_STD_TYPE"
        value="SSTL" />
    <parameter
+       name="emif_io96b_hps|refclk_bridge|PORTS"
+       value="refclk_in        refclk_in         clk      input    1,refclk_out       refclk_out        clk      output   1,refclk_in_gpio   refclk_in_gpio    export   output   1,refclk_out_gpio  refclk_out_gpio   export   input    1" />
+   <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_W2R_SAMECS_CYC"
        value="0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TIH_NS" value="140000.0" />
@@ -217,9 +238,13 @@
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_WR_PREAMBLE_MODE"
        value="1.0" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|CUSTOM_ELABORATION_COMMANDS"
+       value="" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_DQ_VREF" value="35" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRAS_MAX_NS" value="70200.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TIS_NS" value="115000.0" />
+   <parameter name="EMIF_RZQ_SHARING" value="false" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_FAMILY"
        value="Agilex 5" />
@@ -237,6 +262,7 @@
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2W_DIFFCS_CYC"
        value="0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKSRE_NS" value="8.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_WEQ" value="true" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2W_SAMECS_CYC"
        value="0" />
@@ -264,6 +290,9 @@
        value="MEM_TRAS_NS,MEM_TCCD_L_NS,MEM_TCCD_S_NS,MEM_TRRD_L_NS,MEM_TFAW_NS,MEM_TWTR_L_NS,MEM_TWTR_S_NS,MEM_TMRD_NS,MEM_TCKSRE_NS,MEM_TCKSRX_NS,MEM_TCKE_NS,MEM_TMPRR_NS,MEM_TDSH_NS,MEM_TDSS_NS,MEM_TIH_NS,MEM_TIS_NS,MEM_TQSH_NS,MEM_TWLH_NS,MEM_TWLS_NS,MEM_TRFC_DLR_NS,MEM_TRRD_DLR_NS,MEM_TFAW_DLR_NS,MEM_TCCD_DLR_NS,MEM_TXP_NS,MEM_TXS_DLL_NS,MEM_TCPDED_NS,MEM_TMOD_NS,MEM_TZQCS_NS" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_NOM" value="off" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_AL_CYC" value="0.0" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|CONNECTIONS"
+       value="refclk_in        refclk_in_gpio,refclk_out_gpio  refclk_out" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TDQSS_CYC" value="0.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKSRX_NS" value="8.0" />
   </preset>

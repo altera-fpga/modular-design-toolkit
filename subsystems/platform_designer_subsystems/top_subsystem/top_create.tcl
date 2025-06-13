@@ -1,11 +1,11 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
@@ -94,8 +94,8 @@ proc transfer_files {} {
 
 # convert terp files to their native format
 proc evaluate_terp {} {
-    set v_project_name [get_shell_parameter PROJECT_NAME]
-    set v_project_path [get_shell_parameter PROJECT_PATH]
+    set v_project_name  [get_shell_parameter PROJECT_NAME]
+    set v_project_path  [get_shell_parameter PROJECT_PATH]
 
     evaluate_terp_file ${v_project_path}/quartus/shell/${v_project_name}_supplemental.qsf.terp {} 0 1
 }

@@ -24,9 +24,9 @@ The Modular Design Toolkit provides support for the following:
 
 This release of the Modular Design Toolkit requires the following software and versions (in Linux):
 
-- Altera® Quartus® Prime Pro version (24.3 or above), including open-source tools to
+- Altera® Quartus® Prime Pro version (25.1 or above), including open-source tools to
    compile software targeting NiosV soft-processors.
-- Altera® VIP Suite version 24.3 - (optional – only needed for designs with video
+- Altera® VIP Suite version 25.1 - (optional – only needed for designs with video
    processing IP from Altera® VIP suite)
 
 ### Hardware Requirements
@@ -162,7 +162,7 @@ the Platform Designer and Quartus® GUIs.
 
 From either method, once the compilation is finished a new FPGA programming file will be generated under \<project>/quartus/output_files.
 
-<span style="color:red">**Note:**</span> **this example contains an instance of the Agilex5 HPS, to boot you need to create an RBF/JIC file pair and an SD card image. Please refer to the Linux Build Examples in this [link](https://altera-fpga.github.io/rel-24.3/embedded-designs/agilex-5/e-series/modular/boot-examples/ug-linux-boot-agx5e-modular/) or the GSRD User Guide in this [link](https://altera-fpga.github.io/rel-24.3/embedded-designs/agilex-5/e-series/modular/gsrd/ug-gsrd-agx5e-modular/).**
+<span style="color:red">**Note:**</span> **this example contains an instance of the Agilex5 HPS, to boot you need to create an RBF/JIC file pair and an SD card image. Please refer to the Linux Build Examples in this [link](https://altera-fpga.github.io/rel-25.1/embedded-designs/agilex-5/e-series/modular/boot-examples/ug-linux-boot-agx5e-modular/) or the GSRD User Guide in this [link](https://altera-fpga.github.io/rel-25.1/embedded-designs/agilex-5/e-series/modular/gsrd/ug-gsrd-agx5e-modular/).**
 <br><br>
 
 ## Repository Structure

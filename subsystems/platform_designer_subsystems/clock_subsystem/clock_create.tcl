@@ -1,11 +1,11 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
@@ -37,7 +37,6 @@ proc derive_parameters {param_array} {
 
     # get the input reference frequency from the board subsystem
     set v_drv_ref_clk_freq 0
-
 
     for {set id 0} {$id < $p_array(project,id)} {incr id} {
 
@@ -181,7 +180,7 @@ proc create_clock_subsystem {} {
 
     # Set Parameters
     # input_clk_bridge
-    set_instance_parameter_value  input_clk_bridge  EXPLICIT_CLOCK_RATE         $v_drv_ref_clk_freq_hz
+    set_instance_parameter_value  input_clk_bridge  EXPLICIT_CLOCK_RATE         ${v_drv_ref_clk_freq_hz}
     set_instance_parameter_value  input_clk_bridge  NUM_CLOCK_OUTPUTS           1
     # input_rst_bridge
     set_instance_parameter_value  input_rst_bridge  ACTIVE_LOW_RESET            0
@@ -255,6 +254,7 @@ proc create_clock_subsystem {} {
             set_instance_parameter_value  iopll_${v_pll_index}  gui_number_of_clocks          ${v_gui_number_of_clocks}
             set_instance_parameter_value  iopll_${v_pll_index}  gui_fix_vco_frequency         0
             set_instance_parameter_value  iopll_${v_pll_index}  gui_clock_name_global         0
+            set_instance_parameter_value  iopll_${v_pll_index}  gui_clock_name_instantiation  0
 
             # Settings tab (unused/default parameters commented out)
             set_instance_parameter_value  iopll_${v_pll_index}  gui_pll_bandwidth_preset  ${v_drv_pll_bandwidth_preset}

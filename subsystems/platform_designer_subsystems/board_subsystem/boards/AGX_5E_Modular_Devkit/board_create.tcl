@@ -1,19 +1,17 @@
 ###################################################################################
-# INTEL CONFIDENTIAL
+# Copyright (C) 2025 Altera Corporation
 #
-# Copyright (C) 2022 Intel Corporation
-#
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-# create script specific parameters and default values
+# # create script specific parameters and default values
 
 # non user parameters, do not change (used for EMIF IP parameterization only)
 # changes in the preset will NOT be reflected in the pin assignments
@@ -23,14 +21,8 @@
 set_shell_parameter PORT                        "hps"
 
 # preset for use with HPS subsystem
-set v_quartus_version         [get_shell_parameter QUARTUS_VERSION]
-if {${v_quartus_version} >= 24.3} {
-    set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF"
-    set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF.qprs"
-} else {
-    set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16"
-    set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16.qprs"
-}
+set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF"
+set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF.qprs"
 
 # preset for use with EMIF subsystem
 set_shell_parameter DDR4_PRESET_BANK_2B         "Custom Preset"
@@ -70,6 +62,7 @@ proc derive_parameters {param_array} {
 
     # enable board HPS DDR interface if there is an HPS subsystem,
     # or an EMIF subsystem with the HPS port selected
+    set_shell_parameter DRV_HPS_DDR_EN       "0"
     set_shell_parameter DRV_DDR4_PRESET_FILE    ""
 
     set_shell_parameter DRV_FPGA_DDR_EN         "0"
@@ -127,8 +120,8 @@ proc transfer_files {} {
     set v_project_path          [get_shell_parameter PROJECT_PATH]
     set v_instance_name         [get_shell_parameter INSTANCE_NAME]
     set v_ddr_preset_file       [get_shell_parameter DRV_DDR4_PRESET_FILE]
-    set v_subsys_dir            "${v_shell_design_root}/board_subsystem"
     set v_drv_ddr_enabled_banks [get_shell_parameter DRV_DDR_ENABLED_BANKS]
+    set v_subsys_dir            "${v_shell_design_root}/board_subsystem"
 
     # copy Non-QPDS IP files
     file_copy   ${v_subsys_dir}/non_qpds_ip/intel_vip_reset_gen_block \
@@ -314,8 +307,10 @@ proc create_board_subsystem {} {
         add_instance user_led_pio       altera_avalon_pio
 
         # Set Parameters
-        set_instance_parameter_value    user_led_pio        WIDTH           8
-        set_instance_parameter_value    user_led_pio        DIRECTION       Output
+        set_instance_parameter_value    user_led_pio        WIDTH              8
+        set_instance_parameter_value    user_led_pio        DIRECTION          Output
+        set_instance_parameter_value    user_led_pio        resetValue         0x0
+        set_instance_parameter_value    user_led_pio        bitModifyingOutReg 0
 
         # Create Exports
         add_interface                   o_leds              conduit         end
@@ -347,8 +342,11 @@ proc create_board_subsystem {} {
         add_instance user_pb_pio        altera_avalon_pio
 
         # Set Parameters
-        set_instance_parameter_value    user_pb_pio         WIDTH           8
-        set_instance_parameter_value    user_pb_pio         DIRECTION       Input
+        set_instance_parameter_value    user_pb_pio         WIDTH                8
+        set_instance_parameter_value    user_pb_pio         DIRECTION            Input
+        set_instance_parameter_value    user_pb_pio         captureEdge          0
+        set_instance_parameter_value    user_pb_pio         generateIRQ          0
+        set_instance_parameter_value    user_pb_pio         simDoTestBenchWiring 0
 
         # Create Exports
         add_interface                   ia_pb               conduit         end
@@ -460,8 +458,8 @@ proc edit_top_v_file {} {
 
         add_top_port_list input    ""                           "${v_bank_lower}_mem_pll_ref_clk"
         add_top_port_list input    ""                           "${v_bank_lower}_mem_oct_rzqin"
-        add_top_port_list output   "\[ 0:0\]"                   "${v_bank_lower}_mem_ck_t"
-        add_top_port_list output   "\[ 0:0\]"                   "${v_bank_lower}_mem_ck_c"
+        add_top_port_list output   "\[ 0:0\]"                   "${v_bank_lower}_mem_ck"
+        add_top_port_list output   "\[ 0:0\]"                   "${v_bank_lower}_mem_ck_n"
         add_top_port_list output   "\[16:0\]"                   "${v_bank_lower}_mem_a"
         add_top_port_list output   ""                           "${v_bank_lower}_mem_act_n"
         add_top_port_list output   "\[ 1:0\]"                   "${v_bank_lower}_mem_ba"
@@ -473,8 +471,9 @@ proc edit_top_v_file {} {
         add_top_port_list output   ""                           "${v_bank_lower}_mem_par"
         add_top_port_list input    ""                           "${v_bank_lower}_mem_alert_n"
         add_top_port_list inout    "\[${v_dq_width_max}:0\]"    "${v_bank_lower}_mem_dq"
-        add_top_port_list inout    "\[${v_dqs_width_max}:0\]"   "${v_bank_lower}_mem_dqs_t"
-        add_top_port_list inout    "\[${v_dqs_width_max}:0\]"   "${v_bank_lower}_mem_dqs_c"
+        add_top_port_list inout    "\[${v_dqs_width_max}:0\]"   "${v_bank_lower}_mem_dqs"
+        add_top_port_list inout    "\[${v_dqs_width_max}:0\]"   "${v_bank_lower}_mem_dqs_n"
+        add_top_port_list inout    "\[${v_dqs_width_max}:0\]"   "${v_bank_lower}_mem_dbi_n"
     }
 
     if {${v_user_led_to_avmm_en}} {

@@ -1,18 +1,23 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-@@ set entity_name              $param0
+@@ set v_entity_name            $param0
 @@ set v_drv_ddr_enabled_banks  $param1
+
+#=================================================================================
+# set global assignments
+
+set_global_assignment -name QSPI_OWNERSHIP                        HPS
 
 #=================================================================================
 # set pin assignments
@@ -26,44 +31,563 @@ set_location_assignment PIN_BU28      -to rst_pb_n
 
 set_instance_assignment -name GLOBAL_SIGNAL ON -to clk_100_mhz -entity top
 
-set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to clk_100_mhz -entity $entity_name
-set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to rst_pb_n -entity $entity_name
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to clk_100_mhz -entity ${v_entity_name}
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to rst_pb_n -entity ${v_entity_name}
 
 # push buttons and LEDs
 set_location_assignment PIN_BW19 -to user_pb_n[0]  -comment "FPGA_PB0"
 
-set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to user_pb_n[0] -entity $entity_name
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to user_pb_n[0] -entity ${v_entity_name}
 
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[0] -entity $entity_name
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[1] -entity $entity_name
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[2] -entity $entity_name
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity $entity_name
+set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[0] -entity ${v_entity_name}
+set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[1] -entity ${v_entity_name}
+set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[2] -entity ${v_entity_name}
+set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_entity_name}
 
 # ddr
 @@ # note that the HPS and BANK_3A are the same
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "HPS"] >= 0} {
     # DDR4 Bank 3A
-    set_location_assignment PIN_AB117 -to hps_mem_pll_ref_clk -comment IOBANK_3A_B
-    set_location_assignment PIN_AK111 -to hps_mem_oct_rzqin
-    set_location_assignment PIN_H117  -to hps_mem_reset_n
+    set_location_assignment PIN_AB117 -to hps_mem_pll_ref_clk -comment "EMIF HPS"
+    set_location_assignment PIN_AK111 -to hps_mem_oct_rzqin -comment "EMIF HPS"
+    set_location_assignment PIN_H117 -to hps_mem_reset_n -comment "EMIF HPS"
 @@ }
-@@ if {[lsearch -exact $v_drv_ddr_enabled_banks "BANK_2B"] >= 0} {
-    # DDR4 Bank 2B
-    set_location_assignment PIN_BR49 -to bank_2b_mem_pll_ref_clk -comment IOBANK_2B_B
-    set_location_assignment PIN_BR52 -to bank_2b_mem_oct_rzqin
-    set_location_assignment PIN_CK45 -to bank_2b_mem_reset_n
-@@ }
+
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "BANK_3A"] >= 0} {
     # DDR4 Bank 3A
-    set_location_assignment PIN_AB117 -to bank_3a_mem_pll_ref_clk -comment IOBANK_3A_B
-    set_location_assignment PIN_AK111 -to bank_3a_mem_oct_rzqin
-    set_location_assignment PIN_H117  -to bank_3a_mem_reset_n
+    set_location_assignment PIN_AB117 -to bank_3a_mem_pll_ref_clk -comment "EMIF 3A"
+    set_location_assignment PIN_AK111 -to bank_3a_mem_oct_rzqin -comment "EMIF 3A"
+    set_location_assignment PIN_H117 -to bank_3a_mem_reset_n -comment "EMIF 3A"
+    set_location_assignment PIN_T114 -to bank_3a_mem_a[0] -comment "EMIF 3A"
+    set_location_assignment PIN_M105 -to bank_3a_mem_a[10] -comment "EMIF 3A"
+    set_location_assignment PIN_K105 -to bank_3a_mem_a[11] -comment "EMIF 3A"
+    set_location_assignment PIN_AG111 -to bank_3a_mem_a[12] -comment "EMIF 3A"
+    set_location_assignment PIN_Y114 -to bank_3a_mem_a[13] -comment "EMIF 3A"
+    set_location_assignment PIN_AB114 -to bank_3a_mem_a[14] -comment "EMIF 3A"
+    set_location_assignment PIN_AK107 -to bank_3a_mem_a[15] -comment "EMIF 3A"
+    set_location_assignment PIN_AK104 -to bank_3a_mem_a[16] -comment "EMIF 3A"
+    set_location_assignment PIN_P114 -to bank_3a_mem_a[1] -comment "EMIF 3A"
+    set_location_assignment PIN_V117 -to bank_3a_mem_a[2] -comment "EMIF 3A"
+    set_location_assignment PIN_T117 -to bank_3a_mem_a[3] -comment "EMIF 3A"
+    set_location_assignment PIN_M114 -to bank_3a_mem_a[4] -comment "EMIF 3A"
+    set_location_assignment PIN_K114 -to bank_3a_mem_a[5] -comment "EMIF 3A"
+    set_location_assignment PIN_V108 -to bank_3a_mem_a[6] -comment "EMIF 3A"
+    set_location_assignment PIN_T108 -to bank_3a_mem_a[7] -comment "EMIF 3A"
+    set_location_assignment PIN_T105 -to bank_3a_mem_a[8] -comment "EMIF 3A"
+    set_location_assignment PIN_P105 -to bank_3a_mem_a[9] -comment "EMIF 3A"
+    set_location_assignment PIN_M117 -to bank_3a_mem_act_n -comment "EMIF 3A"
+    set_location_assignment PIN_Y108 -to bank_3a_mem_alert_n -comment "EMIF 3A"
+    set_location_assignment PIN_AB108 -to bank_3a_mem_ba[0] -comment "EMIF 3A"
+    set_location_assignment PIN_Y105 -to bank_3a_mem_ba[1] -comment "EMIF 3A"
+    set_location_assignment PIN_AB105 -to bank_3a_mem_bg[0] -comment "EMIF 3A"
+    set_location_assignment PIN_F117 -to bank_3a_mem_bg[1] -comment "EMIF 3A"
+    set_location_assignment PIN_H108 -to bank_3a_mem_ck[0] -comment "EMIF 3A"
+    set_location_assignment PIN_F108 -to bank_3a_mem_ck_n[0] -comment "EMIF 3A"
+    set_location_assignment PIN_F105 -to bank_3a_mem_cke[0] -comment "EMIF 3A"
+    set_location_assignment PIN_K117 -to bank_3a_mem_cs_n[0] -comment "EMIF 3A"
+    set_location_assignment PIN_B119 -to bank_3a_mem_dbi_n[0] -comment "EMIF 3A"
+    set_location_assignment PIN_AC90 -to bank_3a_mem_dbi_n[1] -comment "EMIF 3A"
+    set_location_assignment PIN_V87 -to bank_3a_mem_dbi_n[2] -comment "EMIF 3A"
+    set_location_assignment PIN_H87 -to bank_3a_mem_dbi_n[3] -comment "EMIF 3A"
+    set_location_assignment PIN_B97 -to bank_3a_mem_dbi_n[4] -comment "EMIF 3A"
+    set_location_assignment PIN_A128 -to bank_3a_mem_dq[0] -comment "EMIF 3A"
+    set_location_assignment PIN_Y98 -to bank_3a_mem_dq[10] -comment "EMIF 3A"
+    set_location_assignment PIN_AG104 -to bank_3a_mem_dq[11] -comment "EMIF 3A"
+    set_location_assignment PIN_AC100 -to bank_3a_mem_dq[12] -comment "EMIF 3A"
+    set_location_assignment PIN_Y87 -to bank_3a_mem_dq[13] -comment "EMIF 3A"
+    set_location_assignment PIN_AG100 -to bank_3a_mem_dq[14] -comment "EMIF 3A"
+    set_location_assignment PIN_Y84 -to bank_3a_mem_dq[15] -comment "EMIF 3A"
+    set_location_assignment PIN_V98 -to bank_3a_mem_dq[16] -comment "EMIF 3A"
+    set_location_assignment PIN_P84 -to bank_3a_mem_dq[17] -comment "EMIF 3A"
+    set_location_assignment PIN_T95 -to bank_3a_mem_dq[18] -comment "EMIF 3A"
+    set_location_assignment PIN_T84 -to bank_3a_mem_dq[19] -comment "EMIF 3A"
+    set_location_assignment PIN_A113 -to bank_3a_mem_dq[1] -comment "EMIF 3A"
+    set_location_assignment PIN_T98 -to bank_3a_mem_dq[20] -comment "EMIF 3A"
+    set_location_assignment PIN_M84 -to bank_3a_mem_dq[21] -comment "EMIF 3A"
+    set_location_assignment PIN_P95 -to bank_3a_mem_dq[22] -comment "EMIF 3A"
+    set_location_assignment PIN_K84 -to bank_3a_mem_dq[23] -comment "EMIF 3A"
+    set_location_assignment PIN_K98 -to bank_3a_mem_dq[24] -comment "EMIF 3A"
+    set_location_assignment PIN_K87 -to bank_3a_mem_dq[25] -comment "EMIF 3A"
+    set_location_assignment PIN_H98 -to bank_3a_mem_dq[26] -comment "EMIF 3A"
+    set_location_assignment PIN_M87 -to bank_3a_mem_dq[27] -comment "EMIF 3A"
+    set_location_assignment PIN_M98 -to bank_3a_mem_dq[28] -comment "EMIF 3A"
+    set_location_assignment PIN_F84 -to bank_3a_mem_dq[29] -comment "EMIF 3A"
+    set_location_assignment PIN_B128 -to bank_3a_mem_dq[2] -comment "EMIF 3A"
+    set_location_assignment PIN_F98 -to bank_3a_mem_dq[30] -comment "EMIF 3A"
+    set_location_assignment PIN_D84 -to bank_3a_mem_dq[31] -comment "EMIF 3A"
+    set_location_assignment PIN_A110 -to bank_3a_mem_dq[32] -comment "EMIF 3A"
+    set_location_assignment PIN_B91 -to bank_3a_mem_dq[33] -comment "EMIF 3A"
+    set_location_assignment PIN_B106 -to bank_3a_mem_dq[34] -comment "EMIF 3A"
+    set_location_assignment PIN_A91 -to bank_3a_mem_dq[35] -comment "EMIF 3A"
+    set_location_assignment PIN_A106 -to bank_3a_mem_dq[36] -comment "EMIF 3A"
+    set_location_assignment PIN_B88 -to bank_3a_mem_dq[37] -comment "EMIF 3A"
+    set_location_assignment PIN_B103 -to bank_3a_mem_dq[38] -comment "EMIF 3A"
+    set_location_assignment PIN_A94 -to bank_3a_mem_dq[39] -comment "EMIF 3A"
+    set_location_assignment PIN_B113 -to bank_3a_mem_dq[3] -comment "EMIF 3A"
+    set_location_assignment PIN_A130 -to bank_3a_mem_dq[4] -comment "EMIF 3A"
+    set_location_assignment PIN_A116 -to bank_3a_mem_dq[5] -comment "EMIF 3A"
+    set_location_assignment PIN_B130 -to bank_3a_mem_dq[6] -comment "EMIF 3A"
+    set_location_assignment PIN_B116 -to bank_3a_mem_dq[7] -comment "EMIF 3A"
+    set_location_assignment PIN_AC96 -to bank_3a_mem_dq[8] -comment "EMIF 3A"
+    set_location_assignment PIN_Y95 -to bank_3a_mem_dq[9] -comment "EMIF 3A"
+    set_location_assignment PIN_B122 -to bank_3a_mem_dqs[0] -comment "EMIF 3A"
+    set_location_assignment PIN_AG90 -to bank_3a_mem_dqs[1] -comment "EMIF 3A"
+    set_location_assignment PIN_K95 -to bank_3a_mem_dqs[2] -comment "EMIF 3A"
+    set_location_assignment PIN_F95 -to bank_3a_mem_dqs[3] -comment "EMIF 3A"
+    set_location_assignment PIN_A101 -to bank_3a_mem_dqs[4] -comment "EMIF 3A"
+    set_location_assignment PIN_A125 -to bank_3a_mem_dqs_n[0] -comment "EMIF 3A"
+    set_location_assignment PIN_AG93 -to bank_3a_mem_dqs_n[1] -comment "EMIF 3A"
+    set_location_assignment PIN_M95 -to bank_3a_mem_dqs_n[2] -comment "EMIF 3A"
+    set_location_assignment PIN_D95 -to bank_3a_mem_dqs_n[3] -comment "EMIF 3A"
+    set_location_assignment PIN_B101 -to bank_3a_mem_dqs_n[4] -comment "EMIF 3A"
+    set_location_assignment PIN_F114 -to bank_3a_mem_odt[0] -comment "EMIF 3A"
+    set_location_assignment PIN_K108 -to bank_3a_mem_par -comment "EMIF 3A"
+    set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3a_mem_alert_n -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3a_mem_oct_rzqin -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to bank_3a_mem_pll_ref_clk -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to "bank_3a_mem_pll_ref_clk(n)" -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[10] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[11] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[12] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[13] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[14] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[15] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[16] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[2] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[3] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[4] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[5] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[6] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[7] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[8] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_a[9] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_act_n -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_ba[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_ba[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_bg[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_bg[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to bank_3a_mem_ck[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to bank_3a_mem_ck_n[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_cke[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_cs_n[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_odt[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_par -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3a_mem_reset_n -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dbi_n[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dbi_n[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dbi_n[2] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dbi_n[3] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dbi_n[4] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[10] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[11] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[12] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[13] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[14] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[15] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[16] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[17] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[18] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[19] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[20] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[21] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[22] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[23] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[24] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[25] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[26] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[27] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[28] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[29] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[2] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[30] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[31] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[32] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[33] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[34] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[35] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[36] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[37] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[38] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[39] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[3] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[4] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[5] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[6] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[7] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[8] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3a_mem_dq[9] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs[2] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs[3] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3a_mem_dqs[4] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs_n[0] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs_n[1] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs_n[2] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3a_mem_dqs_n[3] -entity ${v_entity_name}
+    set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3a_mem_dqs_n[4] -entity ${v_entity_name}
 @@ }
+
+@@ if {[lsearch -exact $v_drv_ddr_enabled_banks "BANK_2B"] >= 0} {
+    # DDR4 Bank 2B
+      set_location_assignment PIN_BR49 -to bank_2b_mem_pll_ref_clk -comment "EMIF 2B"
+      set_location_assignment PIN_BR52 -to bank_2b_mem_oct_rzqin -comment "EMIF 2B"
+      set_location_assignment PIN_CK45 -to bank_2b_mem_reset_n -comment "EMIF 2B"
+      set_location_assignment PIN_CF52 -to bank_2b_mem_a[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CH38 -to bank_2b_mem_a[10] -comment "EMIF 2B"
+      set_location_assignment PIN_CF38 -to bank_2b_mem_a[11] -comment "EMIF 2B"
+      set_location_assignment PIN_BU52 -to bank_2b_mem_a[12] -comment "EMIF 2B"
+      set_location_assignment PIN_BW49 -to bank_2b_mem_a[13] -comment "EMIF 2B"
+      set_location_assignment PIN_CA49 -to bank_2b_mem_a[14] -comment "EMIF 2B"
+      set_location_assignment PIN_BR41 -to bank_2b_mem_a[15] -comment "EMIF 2B"
+      set_location_assignment PIN_BU41 -to bank_2b_mem_a[16] -comment "EMIF 2B"
+      set_location_assignment PIN_CH52 -to bank_2b_mem_a[1] -comment "EMIF 2B"
+      set_location_assignment PIN_CC52 -to bank_2b_mem_a[2] -comment "EMIF 2B"
+      set_location_assignment PIN_CA52 -to bank_2b_mem_a[3] -comment "EMIF 2B"
+      set_location_assignment PIN_CF49 -to bank_2b_mem_a[4] -comment "EMIF 2B"
+      set_location_assignment PIN_CH49 -to bank_2b_mem_a[5] -comment "EMIF 2B"
+      set_location_assignment PIN_CH41 -to bank_2b_mem_a[6] -comment "EMIF 2B"
+      set_location_assignment PIN_CF41 -to bank_2b_mem_a[7] -comment "EMIF 2B"
+      set_location_assignment PIN_CC41 -to bank_2b_mem_a[8] -comment "EMIF 2B"
+      set_location_assignment PIN_CA41 -to bank_2b_mem_a[9] -comment "EMIF 2B"
+      set_location_assignment PIN_CL45 -to bank_2b_mem_act_n -comment "EMIF 2B"
+      set_location_assignment PIN_BR38 -to bank_2b_mem_alert_n -comment "EMIF 2B"
+      set_location_assignment PIN_BU38 -to bank_2b_mem_ba[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CA38 -to bank_2b_mem_ba[1] -comment "EMIF 2B"
+      set_location_assignment PIN_BW38 -to bank_2b_mem_bg[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CL42 -to bank_2b_mem_bg[1] -comment "EMIF 2B"
+      set_location_assignment PIN_CK33 -to bank_2b_mem_ck[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CL30 -to bank_2b_mem_ck_n[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CK35 -to bank_2b_mem_cke[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CK48 -to bank_2b_mem_cs_n[0] -comment "EMIF 2B"
+      set_location_assignment PIN_BP41 -to bank_2b_mem_dbi_n[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CL56 -to bank_2b_mem_dbi_n[1] -comment "EMIF 2B"
+      set_location_assignment PIN_BF57 -to bank_2b_mem_dbi_n[2] -comment "EMIF 2B"
+      set_location_assignment PIN_CL14 -to bank_2b_mem_dbi_n[3] -comment "EMIF 2B"
+      set_location_assignment PIN_CH59 -to bank_2b_mem_dbi_n[4] -comment "EMIF 2B"
+      set_location_assignment PIN_BK38 -to bank_2b_mem_dq[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CK54 -to bank_2b_mem_dq[10] -comment "EMIF 2B"
+      set_location_assignment PIN_CL73 -to bank_2b_mem_dq[11] -comment "EMIF 2B"
+      set_location_assignment PIN_CL54 -to bank_2b_mem_dq[12] -comment "EMIF 2B"
+      set_location_assignment PIN_CK73 -to bank_2b_mem_dq[13] -comment "EMIF 2B"
+      set_location_assignment PIN_CK56 -to bank_2b_mem_dq[14] -comment "EMIF 2B"
+      set_location_assignment PIN_CL70 -to bank_2b_mem_dq[15] -comment "EMIF 2B"
+      set_location_assignment PIN_BF50 -to bank_2b_mem_dq[16] -comment "EMIF 2B"
+      set_location_assignment PIN_BF64 -to bank_2b_mem_dq[17] -comment "EMIF 2B"
+      set_location_assignment PIN_BE50 -to bank_2b_mem_dq[18] -comment "EMIF 2B"
+      set_location_assignment PIN_BF68 -to bank_2b_mem_dq[19] -comment "EMIF 2B"
+      set_location_assignment PIN_BH49 -to bank_2b_mem_dq[1] -comment "EMIF 2B"
+      set_location_assignment PIN_BE46 -to bank_2b_mem_dq[20] -comment "EMIF 2B"
+      set_location_assignment PIN_BE64 -to bank_2b_mem_dq[21] -comment "EMIF 2B"
+      set_location_assignment PIN_BF46 -to bank_2b_mem_dq[22] -comment "EMIF 2B"
+      set_location_assignment PIN_BE68 -to bank_2b_mem_dq[23] -comment "EMIF 2B"
+      set_location_assignment PIN_CK8 -to bank_2b_mem_dq[24] -comment "EMIF 2B"
+      set_location_assignment PIN_CK20 -to bank_2b_mem_dq[25] -comment "EMIF 2B"
+      set_location_assignment PIN_CK11 -to bank_2b_mem_dq[26] -comment "EMIF 2B"
+      set_location_assignment PIN_CL20 -to bank_2b_mem_dq[27] -comment "EMIF 2B"
+      set_location_assignment PIN_CL6 -to bank_2b_mem_dq[28] -comment "EMIF 2B"
+      set_location_assignment PIN_CK26 -to bank_2b_mem_dq[29] -comment "EMIF 2B"
+      set_location_assignment PIN_BH41 -to bank_2b_mem_dq[2] -comment "EMIF 2B"
+      set_location_assignment PIN_CL8 -to bank_2b_mem_dq[30] -comment "EMIF 2B"
+      set_location_assignment PIN_CL23 -to bank_2b_mem_dq[31] -comment "EMIF 2B"
+      set_location_assignment PIN_CA31 -to bank_2b_mem_dq[32] -comment "EMIF 2B"
+      set_location_assignment PIN_CC19 -to bank_2b_mem_dq[33] -comment "EMIF 2B"
+      set_location_assignment PIN_CC31 -to bank_2b_mem_dq[34] -comment "EMIF 2B"
+      set_location_assignment PIN_CF19 -to bank_2b_mem_dq[35] -comment "EMIF 2B"
+      set_location_assignment PIN_CF31 -to bank_2b_mem_dq[36] -comment "EMIF 2B"
+      set_location_assignment PIN_CF22 -to bank_2b_mem_dq[37] -comment "EMIF 2B"
+      set_location_assignment PIN_CH31 -to bank_2b_mem_dq[38] -comment "EMIF 2B"
+      set_location_assignment PIN_CH22 -to bank_2b_mem_dq[39] -comment "EMIF 2B"
+      set_location_assignment PIN_BH52 -to bank_2b_mem_dq[3] -comment "EMIF 2B"
+      set_location_assignment PIN_BH38 -to bank_2b_mem_dq[4] -comment "EMIF 2B"
+      set_location_assignment PIN_BP52 -to bank_2b_mem_dq[5] -comment "EMIF 2B"
+      set_location_assignment PIN_BM38 -to bank_2b_mem_dq[6] -comment "EMIF 2B"
+      set_location_assignment PIN_BM52 -to bank_2b_mem_dq[7] -comment "EMIF 2B"
+      set_location_assignment PIN_CL51 -to bank_2b_mem_dq[8] -comment "EMIF 2B"
+      set_location_assignment PIN_CK66 -to bank_2b_mem_dq[9] -comment "EMIF 2B"
+      set_location_assignment PIN_BK49 -to bank_2b_mem_dqs[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CK63 -to bank_2b_mem_dqs[1] -comment "EMIF 2B"
+      set_location_assignment PIN_BE61 -to bank_2b_mem_dqs[2] -comment "EMIF 2B"
+      set_location_assignment PIN_CK17 -to bank_2b_mem_dqs[3] -comment "EMIF 2B"
+      set_location_assignment PIN_CF28 -to bank_2b_mem_dqs[4] -comment "EMIF 2B"
+      set_location_assignment PIN_BM49 -to bank_2b_mem_dqs_n[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CL66 -to bank_2b_mem_dqs_n[1] -comment "EMIF 2B"
+      set_location_assignment PIN_BE57 -to bank_2b_mem_dqs_n[2] -comment "EMIF 2B"
+      set_location_assignment PIN_CL17 -to bank_2b_mem_dqs_n[3] -comment "EMIF 2B"
+      set_location_assignment PIN_CC28 -to bank_2b_mem_dqs_n[4] -comment "EMIF 2B"
+      set_location_assignment PIN_CK39 -to bank_2b_mem_odt[0] -comment "EMIF 2B"
+      set_location_assignment PIN_CL26 -to bank_2b_mem_par -comment "EMIF 2B"
+      set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_2b_mem_alert_n -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_2b_mem_oct_rzqin -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to bank_2b_mem_pll_ref_clk -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to "bank_2b_mem_pll_ref_clk(n)" -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[10] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[11] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[12] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[13] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[14] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[15] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[16] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[5] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[6] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[7] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[8] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_a[9] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_act_n -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_ba[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_ba[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_bg[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_bg[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to bank_2b_mem_ck[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to bank_2b_mem_ck_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_cke[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_cs_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_odt[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_par -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_2b_mem_reset_n -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dbi_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dbi_n[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dbi_n[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dbi_n[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dbi_n[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[10] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[11] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[12] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[13] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[14] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[15] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[16] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[17] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[18] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[19] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[20] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[21] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[22] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[23] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[24] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[25] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[26] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[27] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[28] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[29] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[30] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[31] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[32] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[33] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[34] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[35] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[36] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[37] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[38] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[39] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[5] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[6] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[7] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[8] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_2b_mem_dq[9] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_2b_mem_dqs[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs_n[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs_n[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_2b_mem_dqs_n[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_2b_mem_dqs_n[4] -entity ${v_entity_name}
+@@ }
+
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "BANK_3B"] >= 0} {
     # DDR4 Bank 3B
-    set_location_assignment PIN_AC68 -to bank_3b_mem_pll_ref_clk -comment IOBANK_3B_B
-    set_location_assignment PIN_AC79 -to bank_3b_mem_oct_rzqin
-    set_location_assignment PIN_M77  -to bank_3b_mem_reset_n
+      set_location_assignment PIN_P74 -to bank_3b_mem_a[0] -comment "EMIF 3B"
+      set_location_assignment PIN_T65 -to bank_3b_mem_a[10] -comment "EMIF 3B"
+      set_location_assignment PIN_P65 -to bank_3b_mem_a[11] -comment "EMIF 3B"
+      set_location_assignment PIN_AG79 -to bank_3b_mem_a[12] -comment "EMIF 3B"
+      set_location_assignment PIN_AG72 -to bank_3b_mem_a[13] -comment "EMIF 3B"
+      set_location_assignment PIN_AG75 -to bank_3b_mem_a[14] -comment "EMIF 3B"
+      set_location_assignment PIN_AG83 -to bank_3b_mem_a[15] -comment "EMIF 3B"
+      set_location_assignment PIN_AC83 -to bank_3b_mem_a[16] -comment "EMIF 3B"
+      set_location_assignment PIN_T74 -to bank_3b_mem_a[1] -comment "EMIF 3B"
+      set_location_assignment PIN_V77 -to bank_3b_mem_a[2] -comment "EMIF 3B"
+      set_location_assignment PIN_T77 -to bank_3b_mem_a[3] -comment "EMIF 3B"
+      set_location_assignment PIN_M74 -to bank_3b_mem_a[4] -comment "EMIF 3B"
+      set_location_assignment PIN_K74 -to bank_3b_mem_a[5] -comment "EMIF 3B"
+      set_location_assignment PIN_V67 -to bank_3b_mem_a[6] -comment "EMIF 3B"
+      set_location_assignment PIN_T67 -to bank_3b_mem_a[7] -comment "EMIF 3B"
+      set_location_assignment PIN_M65 -to bank_3b_mem_a[8] -comment "EMIF 3B"
+      set_location_assignment PIN_K65 -to bank_3b_mem_a[9] -comment "EMIF 3B"
+      set_location_assignment PIN_H77 -to bank_3b_mem_act_n -comment "EMIF 3B"
+      set_location_assignment PIN_Y77 -to bank_3b_mem_alert_n -comment "EMIF 3B"
+      set_location_assignment PIN_Y74 -to bank_3b_mem_ba[0] -comment "EMIF 3B"
+      set_location_assignment PIN_Y67 -to bank_3b_mem_ba[1] -comment "EMIF 3B"
+      set_location_assignment PIN_Y65 -to bank_3b_mem_bg[0] -comment "EMIF 3B"
+      set_location_assignment PIN_K77 -to bank_3b_mem_bg[1] -comment "EMIF 3B"
+      set_location_assignment PIN_H67 -to bank_3b_mem_ck[0] -comment "EMIF 3B"
+      set_location_assignment PIN_F67 -to bank_3b_mem_ck_n[0] -comment "EMIF 3B"
+      set_location_assignment PIN_M67 -to bank_3b_mem_cke[0] -comment "EMIF 3B"
+      set_location_assignment PIN_F77 -to bank_3b_mem_cs_n[0] -comment "EMIF 3B"
+      set_location_assignment PIN_B73 -to bank_3b_mem_dbi_n[0] -comment "EMIF 3B"
+      set_location_assignment PIN_AC53 -to bank_3b_mem_dbi_n[1] -comment "EMIF 3B"
+      set_location_assignment PIN_V47 -to bank_3b_mem_dbi_n[2] -comment "EMIF 3B"
+      set_location_assignment PIN_M47 -to bank_3b_mem_dbi_n[3] -comment "EMIF 3B"
+      set_location_assignment PIN_B51 -to bank_3b_mem_dbi_n[4] -comment "EMIF 3B"
+      set_location_assignment PIN_B82 -to bank_3b_mem_dq[0] -comment "EMIF 3B"
+      set_location_assignment PIN_AC61 -to bank_3b_mem_dq[10] -comment "EMIF 3B"
+      set_location_assignment PIN_Y55 -to bank_3b_mem_dq[11] -comment "EMIF 3B"
+      set_location_assignment PIN_AC64 -to bank_3b_mem_dq[12] -comment "EMIF 3B"
+      set_location_assignment PIN_AG61 -to bank_3b_mem_dq[13] -comment "EMIF 3B"
+      set_location_assignment PIN_AG64 -to bank_3b_mem_dq[14] -comment "EMIF 3B"
+      set_location_assignment PIN_Y44 -to bank_3b_mem_dq[15] -comment "EMIF 3B"
+      set_location_assignment PIN_P55 -to bank_3b_mem_dq[16] -comment "EMIF 3B"
+      set_location_assignment PIN_T55 -to bank_3b_mem_dq[17] -comment "EMIF 3B"
+      set_location_assignment PIN_V58 -to bank_3b_mem_dq[18] -comment "EMIF 3B"
+      set_location_assignment PIN_T58 -to bank_3b_mem_dq[19] -comment "EMIF 3B"
+      set_location_assignment PIN_A66 -to bank_3b_mem_dq[1] -comment "EMIF 3B"
+      set_location_assignment PIN_P44 -to bank_3b_mem_dq[20] -comment "EMIF 3B"
+      set_location_assignment PIN_T44 -to bank_3b_mem_dq[21] -comment "EMIF 3B"
+      set_location_assignment PIN_K44 -to bank_3b_mem_dq[22] -comment "EMIF 3B"
+      set_location_assignment PIN_M44 -to bank_3b_mem_dq[23] -comment "EMIF 3B"
+      set_location_assignment PIN_H58 -to bank_3b_mem_dq[24] -comment "EMIF 3B"
+      set_location_assignment PIN_F58 -to bank_3b_mem_dq[25] -comment "EMIF 3B"
+      set_location_assignment PIN_M58 -to bank_3b_mem_dq[26] -comment "EMIF 3B"
+      set_location_assignment PIN_K58 -to bank_3b_mem_dq[27] -comment "EMIF 3B"
+      set_location_assignment PIN_F47 -to bank_3b_mem_dq[28] -comment "EMIF 3B"
+      set_location_assignment PIN_H47 -to bank_3b_mem_dq[29] -comment "EMIF 3B"
+      set_location_assignment PIN_A82 -to bank_3b_mem_dq[2] -comment "EMIF 3B"
+      set_location_assignment PIN_D44 -to bank_3b_mem_dq[30] -comment "EMIF 3B"
+      set_location_assignment PIN_F44 -to bank_3b_mem_dq[31] -comment "EMIF 3B"
+      set_location_assignment PIN_B56 -to bank_3b_mem_dq[32] -comment "EMIF 3B"
+      set_location_assignment PIN_B45 -to bank_3b_mem_dq[33] -comment "EMIF 3B"
+      set_location_assignment PIN_A60 -to bank_3b_mem_dq[34] -comment "EMIF 3B"
+      set_location_assignment PIN_A48 -to bank_3b_mem_dq[35] -comment "EMIF 3B"
+      set_location_assignment PIN_B60 -to bank_3b_mem_dq[36] -comment "EMIF 3B"
+      set_location_assignment PIN_B42 -to bank_3b_mem_dq[37] -comment "EMIF 3B"
+      set_location_assignment PIN_A63 -to bank_3b_mem_dq[38] -comment "EMIF 3B"
+      set_location_assignment PIN_A45 -to bank_3b_mem_dq[39] -comment "EMIF 3B"
+      set_location_assignment PIN_A70 -to bank_3b_mem_dq[3] -comment "EMIF 3B"
+      set_location_assignment PIN_A85 -to bank_3b_mem_dq[4] -comment "EMIF 3B"
+      set_location_assignment PIN_B66 -to bank_3b_mem_dq[5] -comment "EMIF 3B"
+      set_location_assignment PIN_B85 -to bank_3b_mem_dq[6] -comment "EMIF 3B"
+      set_location_assignment PIN_B70 -to bank_3b_mem_dq[7] -comment "EMIF 3B"
+      set_location_assignment PIN_Y58 -to bank_3b_mem_dq[8] -comment "EMIF 3B"
+      set_location_assignment PIN_Y47 -to bank_3b_mem_dq[9] -comment "EMIF 3B"
+      set_location_assignment PIN_A80 -to bank_3b_mem_dqs[0] -comment "EMIF 3B"
+      set_location_assignment PIN_AG57 -to bank_3b_mem_dqs[1] -comment "EMIF 3B"
+      set_location_assignment PIN_K55 -to bank_3b_mem_dqs[2] -comment "EMIF 3B"
+      set_location_assignment PIN_F55 -to bank_3b_mem_dqs[3] -comment "EMIF 3B"
+      set_location_assignment PIN_A54 -to bank_3b_mem_dqs[4] -comment "EMIF 3B"
+      set_location_assignment PIN_B76 -to bank_3b_mem_dqs_n[0] -comment "EMIF 3B"
+      set_location_assignment PIN_AG53 -to bank_3b_mem_dqs_n[1] -comment "EMIF 3B"
+      set_location_assignment PIN_M55 -to bank_3b_mem_dqs_n[2] -comment "EMIF 3B"
+      set_location_assignment PIN_D55 -to bank_3b_mem_dqs_n[3] -comment "EMIF 3B"
+      set_location_assignment PIN_B54 -to bank_3b_mem_dqs_n[4] -comment "EMIF 3B"
+      set_location_assignment PIN_AC79 -to bank_3b_mem_oct_rzqin -comment "EMIF 3B"
+      set_location_assignment PIN_D74 -to bank_3b_mem_odt[0] -comment "EMIF 3B"
+      set_location_assignment PIN_D65 -to bank_3b_mem_par -comment "EMIF 3B"
+      set_location_assignment PIN_AC68 -to bank_3b_mem_pll_ref_clk -comment "EMIF 3B"
+      set_location_assignment PIN_M77 -to bank_3b_mem_reset_n -comment "EMIF 3B"
+      set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3b_mem_alert_n -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3b_mem_oct_rzqin -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to bank_3b_mem_pll_ref_clk -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to "bank_3b_mem_pll_ref_clk(n)" -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[10] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[11] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[12] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[13] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[14] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[15] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[16] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[5] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[6] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[7] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[8] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_a[9] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_act_n -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_ba[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_ba[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_bg[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_bg[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to bank_3b_mem_ck[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to bank_3b_mem_ck_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_cke[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_cs_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_odt[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_par -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "SSTL-12" -to bank_3b_mem_reset_n -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dbi_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dbi_n[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dbi_n[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dbi_n[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dbi_n[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[10] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[11] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[12] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[13] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[14] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[15] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[16] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[17] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[18] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[19] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[20] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[21] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[22] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[23] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[24] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[25] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[26] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[27] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[28] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[29] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[30] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[31] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[32] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[33] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[34] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[35] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[36] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[37] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[38] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[39] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[5] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[6] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[7] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[8] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "1.2-V POD" -to bank_3b_mem_dq[9] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs[4] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs_n[0] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs_n[1] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs_n[2] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs_n[3] -entity ${v_entity_name}
+      set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to bank_3b_mem_dqs_n[4] -entity ${v_entity_name}
 @@ }
 
 # from GSRD / golden_top.qsf
