@@ -1,15 +1,18 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
+
+package require cmdline
+package require fileutil
 
 package require ::quartus::project
 package require ::quartus::flow
@@ -17,512 +20,711 @@ package require ::quartus::misc
 package require ::quartus::report
 package require ::quartus::device
 
-package require cmdline
+set v_script_directory [file dirname [info script]]
+lappend auto_path [file join ${v_script_directory} "packages"]
 
-package require fileutil
+package require pd_handler_pkg           1.0
+package require quartus_ini_pkg          1.0
+package require quartus_verification_pkg 1.0
+package require xml_parse_pkg            1.0
 
-package require xml
-package require xml::libxml2
-package require dom
-package require dom::tcl
-package require dom::libxml2
+# Entry script for running the toolkit flow
 
-# get directories so the script can be run from any directory
-variable current_dir     [ pwd ]
-variable abs_script_path [ dict get [ info frame 0 ] file ]
-variable abs_script_dir  [file dirname $abs_script_path]
+namespace eval create_shell {
 
-# load custom packages
-set packages [glob -directory "$abs_script_dir/packages" -types d -- *]
+    set v_script_root     [file join [pwd] [file dirname [info script]]]
+    set v_toolkit_root    [file normalize [file join ${v_script_root} ".." ".." ]]
+    set v_designs_root    [file join ${v_toolkit_root} ".." ]
+    set v_subsystems_root [file join ${v_toolkit_root} subsystems platform_designer_subsystems]
 
-foreach package $packages {
-  lappend auto_path $package
-}
+    set v_qsys_script_exe         [file join $::env(QUARTUS_ROOTDIR) sopc_builder bin qsys-script]
+    set v_create_subsystem_script [file join ${v_toolkit_root} scripts create create_subsystems.tcl]
 
-package require xml_parse_pkg             1.0
-package require quartus_verification_pkg  1.0
-package require reporting_pkg             1.0
-package require pd_handler_pkg            1.0
-package require query_pkg                 1.0
+    # The first usage message must be -help
+    set v_usage_message {}
+    lappend v_usage_message {quartus_sh -t create_shell.tcl [-? | -help]}
+    lappend v_usage_message {quartus_sh -t create_shell.tcl [-l | -list]}
+    lappend v_usage_message {quartus_sh -t create_shell.tcl (-proj_name=?) (-proj_path=?) (-xml_path=?) (-i) (-o)}
 
-::oo::class create logger {
+    set v_help_message {}
+    lappend v_help_message ""
+    lappend v_help_message "Usage:"
+    lappend v_help_message "------"
+    lappend v_help_message ""
+    foreach v_usage ${v_usage_message} {
+        lappend v_help_message ${v_usage}
+    }
+    lappend v_help_message ""
+    lappend v_help_message "Description:"
+    lappend v_help_message "------------"
+    lappend v_help_message ""
+    lappend v_help_message "    Create a Quartus project from an XML file design description"
+    lappend v_help_message ""
+    lappend v_help_message "Options:"
+    lappend v_help_message "--------"
+    lappend v_help_message ""
+    lappend v_help_message "    -proj_name  Project name. Overrides the project name in the XML design file."
+    lappend v_help_message "    -proj_path  Project path. Output directory to generate Quartus project in.  "
+    lappend v_help_message "                (Default: <toolkit_root>/output)                                "
+    lappend v_help_message "    -xml_path   Path to XML design file. (e.g. ~\design.xml)                    "
+    lappend v_help_message "    -o          Overwrite. Delete the contents of -proj_path if it exists,      "
+    lappend v_help_message "                before project creation                                         "
+    lappend v_help_message "    -i          List IP. Generate a CSV of Platform Designer IP used in the     "
+    lappend v_help_message "                project; after creation. (<proj_path>/quartus/ip_list.csv)      "
+    lappend v_help_message "    -l, -list   Display default XML design files."
+    lappend v_help_message "    -?, -help   Display this message."
+    lappend v_help_message ""
 
-  variable fid 0
+    # Command line options (defaults)
+    set v_default_proj_path [file normalize [file join ${v_toolkit_root} ".." "output"]]
 
-  constructor {dir name} {
-
-    if {[catch {file mkdir $dir}]} {
-      post_message -type error "Unable to create directory: $dir"
+    set v_options {
+        {"proj_name.arg" ""}
+        {"proj_path.arg" ${v_default_proj_path}}
+        {"xml_path.arg"  ""}
+        {"i"             "0"}
+        {"o"             "0"}
     }
 
-    if {[catch {open $name a} fid]} {
-      post_message -type error "Unable to create file: $name"
-    }
+    set v_hidden_options {"l" "list"}
 
-  }
+    # Subdirectories created by the toolkit in the project directory
+    set v_subdirectories {}
+    lappend v_subdirectories "non_qpds_ip"
+    lappend v_subdirectories "quartus"
+    lappend v_subdirectories "rtl"
+    lappend v_subdirectories "scripts"
+    lappend v_subdirectories "sdc"
+    lappend v_subdirectories "software"
 
-  method writeToLog {text} {
-    puts $fid $text
-  }
+    # Subdirectories created by the toolkit that require further subdirectories to be created.
+    # This creates the separation between toolkit files and user files.
+    # i.e. each directory in v_split_subdirectories will have have the directories in v_split_directories
+    #      within them
+    set v_split_subdirectories {}
+    lappend v_split_subdirectories "non_qpds_ip"
+    lappend v_split_subdirectories "quartus"
+    lappend v_split_subdirectories "rtl"
+    lappend v_split_subdirectories "sdc"
 
-  destructor {
-    close $fid
-  }
+    set v_split_directories {"shell" "user"}
 
-}
+    ###################################################################################
 
-# copy a file/directory from one location to another (follow symlinks to root)
-proc file_copy { src_path dest_path } {
-  while {[file type $src_path] == "link" } {
-      set src_path [file readlink $src_path]
-  }
-  file copy -force $src_path $dest_path
-}
+    proc ::create_shell::main {} {
 
-# convert the subsystem type to the directory under which its files belong
-proc type_to_directory {type} {
+        array set v_project_settings {}
+        array set v_parameter_array  {}
 
-  if {$type == "top"} {
-    return ""
-  } elseif {$type == "import"} {
-    return "import"
-  } elseif {$type == "user"} {
-    return "user"
-  } else {
-    return "shell"
-  }
-
-}
-
-# create the project directory tree in the specified path
-proc create_directory_tree {v_proj_path param_array} {
-
-  upvar $param_array p_array
-
-  set directory_list {}
-
-  for {set id 0} {$id < $p_array(project,id)} {incr id} {       
-
-    set directory [type_to_directory $p_array($id,type)]
-    set index [lsearch $directory_list $directory]
-
-    if {($index < 0) && ($directory != "")} {
-      lappend directory_list $directory
-    }
-
-  }
-
-  file mkdir $v_proj_path
-
-  foreach root {non_qpds_ip quartus rtl scripts sdc software} {
-      
-      file mkdir $v_proj_path/$root
-
-      if {($root != "scripts") && ($root != "software")} {  
-        foreach sub $directory_list {
-          file mkdir $v_proj_path/$root/$sub 
+        set v_result [catch {::create_shell::parse_project_settings v_project_settings\
+                                                                    v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            post_message -type ERROR ${v_result_text}
+            qexit -error
         }
-      }
-  }
 
-}
-
-proc improved_getoptions {arglistVar optlist usage} {
-    upvar 1 $arglistVar argv
-    # Warning: Internal cmdline function
-    set opts [::cmdline::GetOptionDefaults $optlist result]
-    while {[set err [::cmdline::getopt argv $opts opt arg]]} {
-        if {$err < 0} {
-            return -code error -errorcode {CMDLINE ERROR} $arg
+        set v_result [catch {::create_shell::create_project v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            if {[is_project_open]} {
+                project_close
+            }
+            post_message -type ERROR ${v_result_text}
+            qexit -error
         }
-        set result($opt) $arg
+
+        set v_result [catch {::create_shell::finalize_project v_project_settings v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            if {[is_project_open]} {
+                project_close
+            }
+            post_message -type ERROR ${v_result_text}
+            qexit -error
+        }
+
+        qexit -success
+
     }
-    if {[info exists result(?)] || [info exists result(help)]} {
-        return -code error -errorcode {CMDLINE USAGE} \
-            [::cmdline::usage $optlist $usage]
+
+    # Parse settings / parameters from the command line arguments and the XML design file;
+    # updating the project_settings and parameter_array associative arrays accordingly.
+
+    proc ::create_shell::parse_project_settings {project_settings parameter_array} {
+
+        upvar ${project_settings} v_project_settings
+        upvar ${parameter_array}  v_parameter_array
+
+        puts "Parsing project settings"
+
+        set v_result [catch {::create_shell::parse_command_line_arguments ::argv v_project_settings} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::xml_parse_pkg::parse_xml_design_file $v_project_settings(xml_path) \
+                               ${::create_shell::v_toolkit_root} v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::create_shell::parse_project_name v_project_settings v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::create_shell::parse_project_path v_project_settings v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::quartus_verification_pkg::check_quartus_compatibility v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        return -code ok
+
     }
-    return [array get result]
-}
 
-#====================================================================================================================================
+    # Create project and subsystems
 
-#====================================================================================================================================
+    proc ::create_shell::create_project {parameter_array} {
 
-proc main {} {
+        upvar ${parameter_array}  v_parameter_array
 
-  variable ::argv0 $::quartus(args)
-  variable v_log 0
-  variable v_log_filename "project_build.log"
+        puts "Creating project"
 
-  set v_shell_subsystems_root [file dirname [file normalize [info script]/../../../]]   ;# absolute path of the shell design install directory (using current script as reference)
-  set v_shell_install_root $v_shell_subsystems_root
-  set v_shell_designs_root [file join $v_shell_subsystems_root]
-  puts "$v_shell_designs_root"
-  set v_shell_subsystems_root [file join $v_shell_subsystems_root modular_design_toolkit]
-  set v_shell_subsystems_root [file join $v_shell_subsystems_root subsystems]
-  set v_shell_subsystems_root [file join $v_shell_subsystems_root platform_designer_subsystems]
-  puts "$v_shell_subsystems_root"
-  set v_shell_designs_dirs_list [glob -directory $v_shell_designs_root -type d *]
-  foreach subdir $v_shell_designs_dirs_list {
-    lappend v_xml_file_name_list [file tail [glob -nocomplain -directory $subdir -type f *.xml]]
-  }
-  set v_xml_file_name_list [lsort -dictionary $v_xml_file_name_list]
+        set v_result [catch {::create_shell::create_directory_tree v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+           return -code ${v_result} ${v_result_text}
+        }
 
-  # =====================================================================
-  # Definition of arguments for the script
+        set v_result [catch {::quartus_ini_pkg::create_quartus_ini_file v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  # "proj_name" - Switch to specify the name of the project; this overrides the project name specified in the XML file
-  # "proj_path" - Switch to specify the project path; by default, the project location is the same as the shell install location as well
-  # "xml_path"  - Switch to specify the xml settings file path (required for operation)
-  # "log"       - Switch to enable logging of stdout to a file
+        set v_result [catch {::create_shell::create_quartus_project v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  set options {
-      { "proj_name.arg"   ""      "Name of the Quartus project" }
-      { "proj_path.arg"   "."     "Project path" }
-      { "xml_path.arg"    "."     "Shell design XML settings file path"}
-      { "log"             "0"     "Log the stdout into a file" }
-      { "o"               "0"     "Overwrite the project directory if it exists"}
-  }
+        set v_result [catch {::create_shell::create_subsystems v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  set usage "quartus_sh -t project_script.tcl (-proj_name=?) (-proj_path=?) (-xml_path=?) (-log) (-o) (-help)"
+        return -code ok
 
-  try {
-      array set opts_hash [improved_getoptions ::argv $options $usage]
-      puts "All options valid"
-  } trap {CMDLINE USAGE} {msg} {
-      # This trap is executed when the -help argument is used by the user
-      puts stderr "\n"
-      puts stderr "-------------------------------------------------------------------------------------------"
-      puts stderr "----                            Shell Design Toolkit                                   ----"
-      puts stderr "-------------------------------------------------------------------------------------------"
-      puts stderr "\n"
-      puts stderr $msg
-      puts stderr "\nNAME"
-      puts stderr "     create_shell.tcl -- Script to create a shell design"
-      puts stderr "\nDESCRIPTION"
-      puts stderr "     create_shell.tcl script creates a design based on the system description provided in "
-      puts stderr "     the XML file using different subsystems as building blocks. There are three types of "
-      puts stderr "     subsystems supported by the toolkit"
-      puts stderr "         1. Library subsystems"
-      puts stderr "         2. User subsystems"
-      puts stderr "         3. Import subsystems"
-      puts stderr "\nARGUMENTS"
-      puts stderr "     -proj_name    By default the project name has to be specified in the XML file. Use "
-      puts stderr "                   this argument to override the project name specified in the XML file\n"
-      puts stderr "     -proj_path    By default create_shell.tcl script creates the project folder in the "
-      puts stderr "                   script location. Use this argument to specify a absolute project path\n"
-      puts stderr "     -xml_path     Argument to specify the XML file describing the system in terms of its "
-      puts stderr "                   constituent subsystems and their properties\n"
-      puts stderr "                   Following is the shell design XML list from shell design toolkit install directory:"
-      foreach xml $v_xml_file_name_list {
-        puts stderr "                       - $xml"
-      }
-      puts stderr "\n"
-      puts stderr "     -log          Option to enable the logging of messages both from the script"
-      puts stderr "                   and platform designer. Log file location would be "
-      puts stderr "                   <proj_path/quartus/platform_designer_log.txt>\n"
-      puts stderr "     -o            create_shell.tcl script will error out if the specified project folder"
-      puts stderr "                   exists. Use this option to overwrite the existing project folder"
-      puts stderr "\nSEE ALSO"
-      puts stderr "     build_shell.tcl (build_shell)\n\n"
-      exit 0
-  } trap {CMDLINE ERROR} {msg} {
-      puts stderr "Error: $msg"
-      exit 1
-  }
-
-  # =====================================================================
-  # Set local argument variables based on arg
-
-  set v_proj_name ""
-  set v_proj_path "."
-  set v_xml_path "."
-  set v_log 0
-  set v_overwrite 0
-  set v_log_filename "project_build.log"
-
-  if { $opts_hash(proj_name) != "" } {
-    set v_proj_name $opts_hash(proj_name)
-  }
-
-  if { $opts_hash(proj_path) != "." } {
-    set v_proj_path $opts_hash(proj_path)
-  }
-  set v_abs_proj_path [file normalize $v_proj_path]
-
-  if { $opts_hash(xml_path) != "." } {
-    set v_xml_path $opts_hash(xml_path)
-    set abs_xml_path [file dirname [file normalize $v_xml_path]]
-  } else {
-    puts "xml settings file is required"
-    return
-  }
-
-  if { $opts_hash(log) } { set v_log 1 }
-
-  if { $opts_hash(o) } { set v_overwrite 1 }
-
-  # =====================================================================
-  # xml parse
-
-  array set param_array {}
-
-  puts "shell design root : $v_shell_subsystems_root"
-  puts "shell script root : $v_shell_install_root"
-
-  ::xml_parse_pkg::parse_xml_settings_file $v_xml_path $v_shell_subsystems_root $v_shell_designs_root param_array
-
-  # allow project name to be overridden from the command line
-
-  if {$v_proj_name!=""} {
-    set param_array(project,name) $v_proj_name
-  } else {
-    set v_proj_name $param_array(project,name)
-  }
-
-  # =====================================================================
-  # Error checking for arguments
-
-  # Project name check
-
-  if {[ regexp {[^\w-]} $v_proj_name ]} {             ;# match any character that is not alphanumeric, underscore or dash
-    post_message -type error "Error: Project name $v_proj_name is ILLEGAL"
-    return
-  }
-
-  # Project path check
-
-  if {[file exists $v_proj_path/non_qpds_ip] || [file exists $v_proj_path/quartus] || [file exists $v_proj_path/rtl] || [file exists $v_proj_path/scripts] || [file exists $v_proj_path/software]} {
-    if {$v_overwrite} {
-      file delete -force $v_proj_path/non_qpds_ip $v_proj_path/quartus $v_proj_path/rtl $v_proj_path/scripts $v_proj_path/software
-    } else {
-      puts stderr "Error : Project folder already exists, either use flag -o to overwrite an existing project in the specified folder, or select another folder"
-      exit 1
     }
-  }
 
-  # =====================================================================
-  # Print local variables
+    # Finalize project (add assignments, create qsfs, add files to project)
 
-  puts "Info : v_proj_name - $v_proj_name"
-  puts "Info : v_proj_path - $v_proj_path"
-  puts "Info : v_xml_path  - $v_xml_path"
-  puts "Info : v_log       - $v_log"
+    proc ::create_shell::finalize_project {project_settings parameter_array} {
 
-  # add final arguments to the the parameter array
+        upvar ${project_settings} v_project_settings
+        upvar ${parameter_array}  v_parameter_array
 
-  lappend param_array(project,params)  [list SHELL_DESIGN_ROOT $v_shell_subsystems_root]
-  lappend param_array(project,params)  [list PROJECT_PATH      $v_abs_proj_path    ]
-  lappend param_array(project,params)  [list PROJECT_NAME      $v_proj_name        ]
+        puts "Finalizing project"
 
-  regexp {[\.0-9]+} $::quartus(version) acds_env
-  
-  # split to major.minor version 
+        set v_project_path $v_parameter_array(project,path)
+        set v_project_name $v_parameter_array(project,name)
 
-  set q_version [split $acds_env "."]
-  set q_major [lindex $q_version 0]
-  set q_minor [lindex $q_version 1]
-  lappend param_array(project,params)  [list QUARTUS_VERSION   "$q_major.$q_minor"   ]
+        set v_result [catch {::create_shell::add_project_assignments v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  puts "QUARTUS VERSION $q_major.$q_minor"  
+        for {set v_id 0} {${v_id} < $v_parameter_array(project,id)} {incr v_id} {
+            set v_result [catch {::create_shell::create_subsystem_qsf v_parameter_array ${v_id}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+        }
 
-  # =====================================================================
-  # Create directory Structure
+        set v_result [catch {::create_shell::add_subsystem_files v_project_settings v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  create_directory_tree $v_proj_path param_array
+        if {[is_project_open]} {
+            project_close
+        }
 
-  # Must be in the project directory to pickup the quartus.ini file
-  set curr_dir [pwd]
-  cd $v_proj_path/quartus
+        if {$v_project_settings(i) == 1} {
+            set v_result [catch {::quartus_verification_pkg::ip_list_generate ${v_project_path} \
+                                   ${v_project_name}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+        }
 
-  # ====================================================================
-  # generate quartus.ini file 
+        return -code ok
 
-  ::query_pkg::create_quartus_ini_file "$v_abs_proj_path/quartus" param_array
+    }
 
-  # =====================================================================
-  # Create blank project
+    # Parse command line arguments; write results to project_settings array
 
-  # Check that the right project is open
-  if {[is_project_open]} {
-      if {[string compare $quartus(project) $v_proj_name]} {
-          ::reporting_package::puts_log "Project $v_proj_name is not open"
-          exit 1
-      }
-  } else {
-      # Only open if not already open
-      if {[project_exists $v_proj_name]} {
-          project_open -revision $v_proj_name $v_proj_name
-      } else {
-          project_new -revision $v_proj_name $v_proj_name
-      }
-  }
+    proc ::create_shell::parse_command_line_arguments {arguments project_settings} {
 
-  # add required assignments for the default .qsf
+        upvar ${arguments}        v_arguments
+        upvar ${project_settings} v_project_settings
 
-  array set temp_array [join $param_array(project,params)]
+        try {
+            array set v_project_settings [::create_shell::parse_arguments v_arguments]
 
-  # check the version of quartus
-  if { [catch { set supported_version_list $temp_array(VERSION) } version_info_exists ] } {
-    set supported_version_list ""
-  } else {
-    set supported_version_list $temp_array(VERSION)
-  }
-  ::quartus_verification_pkg::evaluate_quartus $supported_version_list
+        } trap {CMDLINE HELP} {} {
+            foreach v_line ${::create_shell::v_help_message} {
+                puts ${v_line}
+            }
+            qexit -success
 
-  puts "default search paths - $temp_array(IP_SEARCH_PATH_CONCAT)"
+        } trap {CMDLINE LIST} {} {
+            puts "\nSearching for available designs\n"
 
-  set_global_assignment -name FAMILY $temp_array(FAMILY)
-  set_global_assignment -name DEVICE $temp_array(DEVICE)
-  set_global_assignment -name IP_SEARCH_PATHS $temp_array(IP_SEARCH_PATH_CONCAT)
-  export_assignments
+            set v_result [catch {::xml_parse_pkg::get_default_xml_designs ${::create_shell::v_toolkit_root} \
+                                   ${::create_shell::v_script_root}} v_default_xml_designs]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_default_xml_designs}
+            }
 
-  array unset temp_array
+            if {[llength ${v_default_xml_designs}] == 0} {
+                puts "\nNo designs found\n"
+            } else {
+                puts "\nAvailable designs:\n"
 
-  # run the subsystem creation scripts with qsys-script, using the intermediate script
+                foreach {v_default_xml_design v_paths} ${v_default_xml_designs} {
+                    puts "  - ${v_default_xml_design}"
 
-  set qsys_script_exe "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin/qsys-script"
+                    if {[llength ${v_paths}] > 1} {
+                        foreach v_path ${v_paths} {
+                            set v_full_path [file join ${v_path} ${v_default_xml_design}]
+                            puts "      ${v_full_path}"
+                        }
+                    }
+                }
+            }
 
-  #====================================================================================================================================================================================
+            puts ""
+            qexit -success
 
-  set tempDir $v_abs_proj_path
+        } trap {CMDLINE ERROR} {message} {
+            return -code error ${message}
+        }
 
-  set cmd [list $qsys_script_exe --script=$v_shell_install_root/modular_design_toolkit/scripts/create/create_subsystems_qsys.tcl \
-                                          $v_shell_install_root [array get param_array] \
-                                 --quartus-project=$v_abs_proj_path/quartus/$v_proj_name 2>@1]
+        if {[string equal $v_project_settings(xml_path) ""] == 1} {
+            return -code error "XML path is required"
+        }
 
-  set return_value [::pd_handler_pkg::run $cmd $tempDir]
+        set v_project_settings(proj_path) [file normalize $v_project_settings(proj_path)]
+        set v_project_settings(xml_path)  [file normalize $v_project_settings(xml_path)]
 
-  logger create my_log [pwd] "platform_designer_log.txt"
+        return -code ok
 
-  my_log writeToLog $::pd_handler_pkg::pd_log
+    }
 
-  if {$return_value} {
-    project_close
-    qexit -error
-  }
+    proc ::create_shell::parse_arguments {arguments} {
 
-  #====================================================================================================================================================================================
+        upvar ${arguments} v_arguments
 
-  # remove any edits made to the default .qsf file during the subsystem creation
+        set v_options [::cmdline::GetOptionDefaults ${::create_shell::v_options} v_parsed_arguments]
 
-  remove_all_global_assignments -name *
+        # Add additional "hidden" options
+        set v_options [concat ${v_options} ${::create_shell::v_hidden_options}]
 
-  # add required assignments to the default .qsf
+        while {[set v_result [::cmdline::getopt v_arguments ${v_options} v_option v_value]]} {
+            if {${v_result} < 0} {
+                return -code error -errorcode {CMDLINE ERROR} ${v_value}
+            }
+            set v_parsed_arguments(${v_option}) ${v_value}
+        }
 
-  array set temp_array [join $param_array(project,params)]
+        if {[info exists v_parsed_arguments(?)] || [info exists v_parsed_arguments(help)]} {
+            return -code error -errorcode {CMDLINE HELP}
+        } elseif {[info exists v_parsed_arguments(l)] || [info exists v_parsed_arguments(list)]} {
+            return -code error -errorcode {CMDLINE LIST}
+        }
 
-  set_global_assignment -name FAMILY $temp_array(FAMILY)
-  set_global_assignment -name DEVICE $temp_array(DEVICE)
-  set_global_assignment -name IP_SEARCH_PATHS  $temp_array(IP_SEARCH_PATH_CONCAT)
-  set_global_assignment -name TOP_LEVEL_ENTITY $v_proj_name
-  set_global_assignment -name SEED 1
+        return [array get v_parsed_arguments]
 
-  array unset temp_array
+    }
 
-  set_instance_assignment -name PARTITION_COLOUR 4285529948 -to $v_proj_name -entity $v_proj_name
-  set_instance_assignment -name PARTITION_COLOUR 4294939049 -to auto_fab_0 -entity $v_proj_name
+    # Check project name is valid
 
-  export_assignments
+    proc ::create_shell::parse_project_name {project_settings parameter_array} {
 
-  #=======================================================================
-  # update the .qsf files to include the generated files
-  #=======================================================================
-  
-  # loop through all subsystems
-  for {set id 0} {$id < $param_array(project,id)} {incr id} {       
+        upvar ${project_settings} v_project_settings
+        upvar ${parameter_array}  v_parameter_array
 
-    set type $param_array($id,type)
-    
-    # the top subsystem is treated differently (no ip files)
-    if {($type == "top")} {                                        
+        # project name priority: command line -> XML design file -> default=top
+        if {([string equal "" $v_project_settings(proj_name)]) == 1} {
+            set v_project_settings(proj_name) $v_parameter_array(project,name)
+        } else {
+            set v_parameter_array(project,name) $v_project_settings(proj_name)
+        }
 
-      set name $param_array(project,name)
+        lappend v_parameter_array(project,params)  [list PROJECT_NAME $v_parameter_array(project,name)]
 
-      set fp [open "$v_abs_proj_path/quartus/shell/${name}_supplemental.qsf" a+]
+        if {([regexp {[^\w-]} $v_parameter_array(project,name)]) == 1} {
+            return -code error "Error: Project name $v_parameter_array(project,name) is illegal\
+                                (must contain only [a-z,A-Z,0-9,-,_])"
+        }
 
-      puts $fp "\nset_global_assignment -name VERILOG_FILE ./../rtl/${name}.v"
-      puts $fp "\nset_global_assignment -name QSYS_FILE ./../rtl/${name}_qsys.qsys"
+        return -code ok
 
-      close $fp
+    }
 
-    } else {
+    # Check project path is valid
 
-      set folder [type_to_directory $type]
+    proc ::create_shell::parse_project_path {project_settings parameter_array} {
 
-      set name $param_array($id,name)
+        upvar ${project_settings} v_project_settings
+        upvar ${parameter_array}  v_parameter_array
 
-      # check that the subsystem has an IP directory
-      if {[file exists $v_abs_proj_path/rtl/$folder/ip/$name]} {
+        foreach v_subdirectory ${::create_shell::v_subdirectories} {
 
-        # get a list of all IP in the subsystem
-        set ip_list [fileutil::findByPattern $v_abs_proj_path/rtl/$folder/ip/$name -glob -- *.ip]
+            set v_directory [file join $v_project_settings(proj_path) ${v_subdirectory}]
 
-        if {[llength $ip_list] > 0} {
-
-          # open subsystem .qsf file (append, or create)
-          set fp [open "$v_abs_proj_path/quartus/$folder/$name.qsf" a+]
-
-          # add IP files to the .qsf file
-          puts $fp "\n# set file locations\n"
-
-          foreach ip $ip_list {
-            set ip_file [file tail $ip]
-            puts $fp "set_global_assignment -name IP_FILE ../rtl/$folder/ip/$name/$ip_file"
-          }
-
-          close $fp
+            if {[file exists ${v_directory}] == 1} {
+                if {$v_project_settings(o) == 1} {
+                    file delete -force -- ${v_directory}
+                } else {
+                    return -code error "Project directory already exists. Use flag -o to delete/overwrite\
+                                        an existing project directory, or select another directory"
+                }
+            }
 
         }
 
-      }
-    
-      # add the subsystem qsys file to the .qsf file
-      if {[file exists $v_abs_proj_path/rtl/$folder/$name.qsys]} {
-        set fp [open "$v_abs_proj_path/quartus/$folder/$name.qsf" a+]
-        puts $fp "\nset_global_assignment -name QSYS_FILE ../rtl/$folder/$name.qsys"                 
-        close $fp
-      }
+        set v_parameter_array(project,path) $v_project_settings(proj_path)
+        lappend v_parameter_array(project,params)  [list PROJECT_PATH $v_project_settings(proj_path)]
+
+        return -code ok
 
     }
 
-  }
+    # Create the project directory tree
 
-  if {[file exists $abs_xml_path/design.qsf]} {
-    file_copy $abs_xml_path/design.qsf $v_abs_proj_path/quartus/shell/
-  }
+    proc ::create_shell::create_directory_tree {parameter_array} {
 
-  # search the quartus directories for .qsf files and add them to the default .qsf file
+        upvar ${parameter_array} v_parameter_array
 
-  foreach v_subdir {shell user import} {
+        set v_project_path $v_parameter_array(project,path)
 
-    if {[file exists $v_abs_proj_path/quartus/$v_subdir]} {
-      
-      set v_qsf_files_list [fileutil::findByPattern $v_abs_proj_path/quartus/$v_subdir -glob -- *.qsf]    ;# search for any .qsf in the directory
-      set v_sdc_files_list [fileutil::findByPattern $v_abs_proj_path/sdc/$v_subdir -glob -- *.sdc]        ;# search for any .sdc in the directory
-
-      foreach v_qsf_file $v_qsf_files_list {
-        set v_rel_file [fileutil::relative $v_abs_proj_path/quartus $v_qsf_file]      ;# get the relative path from the .qpf
-
-        if {$v_rel_file!="$v_proj_name.qsf"} {                                        ;# ignore the project's default .qsf
-          set_global_assignment -name SOURCE_TCL_SCRIPT_FILE $v_rel_file              ;# note : this changes the default .qsf which is undesired behaviour
+        set v_result [catch {file mkdir ${v_project_path}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
         }
-      }
 
-      foreach v_sdc_file $v_sdc_files_list {
-        set v_rel_file [fileutil::relative $v_abs_proj_path/quartus $v_sdc_file]      ;# get the relative path from the .qpf
-        set_global_assignment -name SDC_FILE $v_rel_file
-      }
+        set v_directories {}
+
+        foreach v_directory ${::create_shell::v_subdirectories} {
+            set v_index [lsearch ${::create_shell::v_split_subdirectories} ${v_directory}]
+
+            if {${v_index} >= 0} {
+                foreach v_split_directory ${::create_shell::v_split_directories} {
+                    lappend v_directories [file join ${v_project_path} ${v_directory} ${v_split_directory}]
+                }
+            } else {
+                lappend v_directories [file join ${v_project_path} ${v_directory}]
+            }
+        }
+
+        foreach v_directory ${v_directories} {
+            set v_result [catch {file mkdir ${v_directory}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+        }
+
+        return -code ok
 
     }
 
-  }
+    # Create the Quartus project, add assignments
 
-  project_close
+    proc ::create_shell::create_quartus_project {parameter_array} {
 
-  # generate list of IP used.
-  ::quartus_verification_pkg::ip_list_generate $v_abs_proj_path $v_proj_name
+        upvar ${parameter_array} v_parameter_array
+
+        array set v_temporary_array [join $v_parameter_array(project,params)]
+        set v_project_path $v_parameter_array(project,path)
+        set v_project_name $v_parameter_array(project,name)
+
+        # Project must be created whilst in the Quartus directory to pickup quartus.ini (if any)
+        set v_current_directory [pwd]
+        set v_quartus_directory [file join ${v_project_path} "quartus"]
+
+        cd ${v_quartus_directory}
+
+        if {[is_project_open] == 1} {
+            set v_result [catch {project_close} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+        } elseif {[project_exists ${v_project_name}] == 1} {
+            return -code error "Project (${v_project_name}) already exists"
+        }
+
+        set v_result [catch {project_new -family $v_temporary_array(FAMILY) -part $v_temporary_array(DEVICE) \
+                                         -revision ${v_project_name} ${v_project_name}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {set_global_assignment -name IP_SEARCH_PATHS \
+                               $v_temporary_array(IP_SEARCH_PATH_CONCAT)} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {export_assignments} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        cd ${v_current_directory}
+
+        return -code ok
+
+    }
+
+    # Create Platform Designer subsystems
+
+    proc ::create_shell::create_subsystems {parameter_array} {
+
+        upvar ${parameter_array} v_parameter_array
+
+        set v_quartus_project [file join $v_parameter_array(project,path) quartus $v_parameter_array(project,name)]
+
+        set v_command [list ${::create_shell::v_qsys_script_exe} --script=${::create_shell::v_create_subsystem_script} \
+                            ${::create_shell::v_toolkit_root} [array get v_parameter_array] \
+                            --quartus-project=${v_quartus_project} 2>@1]
+
+        set v_exit_code [::pd_handler_pkg::run ${v_command} $v_parameter_array(project,path)]
+
+        set v_log_file [file join $v_parameter_array(project,path) quartus "platform_designer_log.txt"]
+
+        set v_result [catch {open ${v_log_file} w} v_fid]
+        if {${v_result} != 0} {
+            return -code error "Unable to open file (${v_log_file}):\n${v_fid}"
+        }
+
+        puts  ${v_fid} ${::pd_handler_pkg::pd_log}
+        close ${v_fid}
+
+        if {${v_exit_code} == 1} {
+            return -code error "Creation of Platform Designer system failed: see log file ${v_log_file} for details"
+        }
+
+        return -code ok
+
+    }
+
+    # Add assignments to the project
+
+    proc ::create_shell::add_project_assignments {parameter_array} {
+
+        upvar ${parameter_array}  v_parameter_array
+
+        # Remove any edits made to the default .qsf file during subsystem creation
+        remove_all_global_assignments -name *
+
+        set v_project_name $v_parameter_array(project,name)
+
+        array set v_temporary_array [join $v_parameter_array(project,params)]
+
+        set v_result [catch {set_global_assignment -name FAMILY $v_temporary_array(FAMILY)} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {set_global_assignment -name DEVICE $v_temporary_array(DEVICE)} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {set_global_assignment -name IP_SEARCH_PATHS \
+                               $v_temporary_array(IP_SEARCH_PATH_CONCAT)} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {set_global_assignment -name TOP_LEVEL_ENTITY ${v_project_name}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {set_global_assignment -name SEED 1} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        array unset v_temporary_array
+
+        set v_result [catch {set_instance_assignment -name PARTITION_COLOUR 4285529948 \
+                               -to ${v_project_name} -entity ${v_project_name}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {set_instance_assignment -name PARTITION_COLOUR 4294939049 \
+                               -to auto_fab_0 -entity ${v_project_name}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        export_assignments
+
+        return -code ok
+
+    }
+
+    # Create subsystem QSF (assign IP and Qsys files)
+
+    proc ::create_shell::create_subsystem_qsf {parameter_array id} {
+
+        upvar ${parameter_array} v_parameter_array
+
+        set v_project_path $v_parameter_array(project,path)
+        set v_project_name $v_parameter_array(project,name)
+
+        set v_type $v_parameter_array(${id},type)
+
+        set v_qsf_file      ""
+        set v_file_contents {}
+
+        if {[string equal "top" ${v_type}] == 1} {
+
+            set v_qsf_file     [file join ${v_project_path} quartus shell "${v_project_name}_supplemental.qsf"]
+
+            set v_verilog_file [file join . .. rtl "${v_project_name}.v"]
+            set v_qsys_file    [file join . .. rtl "${v_project_name}_qsys.qsys"]
+
+            lappend v_file_contents "set_global_assignment -name VERILOG_FILE ${v_verilog_file}"
+            lappend v_file_contents "set_global_assignment -name QSYS_FILE    ${v_qsys_file}"
+
+        } else {
+
+            set v_folder "shell"
+
+            if {[string equal "user" ${v_type}] == 1} {
+                set v_folder "user"
+            }
+
+            set v_subsystem_name $v_parameter_array(${id},name)
+
+            set v_quartus_directory [file join ${v_project_path} quartus]
+            set v_qsf_file          [file join ${v_quartus_directory} ${v_folder} "${v_subsystem_name}.qsf"]
+
+            set v_ip_directory   [file join ${v_project_path} rtl ${v_folder} ip ${v_subsystem_name}]
+            set v_qsys_directory [file join ${v_project_path} rtl ${v_folder}]
+
+            if {[file exists ${v_ip_directory}] == 1} {
+
+                set v_subsystem_ip [fileutil::findByPattern ${v_ip_directory} -glob -- *.ip]
+
+                foreach v_ip_file ${v_subsystem_ip} {
+                    set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_ip_file}]
+                    lappend v_file_contents "set_global_assignment -name IP_FILE ${v_relative_file}"
+                }
+
+            }
+
+            if {[file exists ${v_qsys_directory}] == 1} {
+
+                set v_subsystem_qsys [fileutil::findByPattern ${v_qsys_directory} -glob -- "${v_subsystem_name}.qsys"]
+
+                foreach v_qsys_file ${v_subsystem_qsys} {
+                    set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_qsys_file}]
+                    lappend v_file_contents "set_global_assignment -name QSYS_FILE ${v_relative_file}"
+                }
+
+            }
+        }
+
+        if {[llength ${v_file_contents}] > 0} {
+
+            set v_result [catch {open ${v_qsf_file} a+} v_fid]
+            if {${v_result} != 0} {
+                return -code ${v_result} "Unable to create/open file (${v_qsf_file}):\n${v_fid}"
+            }
+
+            foreach v_line ${v_file_contents} {
+                puts ${v_fid} ${v_line}
+            }
+
+            close ${v_fid}
+        }
+
+        return -code ok
+
+    }
+
+    # Add subsystem QSF and SDC files to the project QSF
+
+    proc ::create_shell::add_subsystem_files {project_settings parameter_array} {
+
+        upvar ${project_settings} v_project_settings
+        upvar ${parameter_array}  v_parameter_array
+
+        # add required assignments to the default .qsf
+        set v_project_path $v_parameter_array(project,path)
+        set v_project_name $v_parameter_array(project,name)
+        set v_xml_path     $v_project_settings(xml_path)
+
+        set v_design_qsf    [file join ${v_xml_path} design.qsf]
+        set v_qsf_directory [file join ${v_project_path} quartus shell]
+
+        if {[file exists ${v_design_qsf}] == 1} {
+            file copy -force ${v_design_qsf} ${v_qsf_directory}
+        }
+
+        set v_qsf_files_list {}
+        set v_sdc_files_list {}
+
+        foreach v_subdir ${::create_shell::v_split_directories} {
+
+            set v_qsf_directory [file join ${v_project_path} quartus ${v_subdir}]
+            set v_sdc_directory [file join ${v_project_path} sdc ${v_subdir}]
+
+            if {[file exists ${v_qsf_directory}] == 1} {
+                set v_temporary_list [fileutil::findByPattern ${v_qsf_directory} -glob -- *.qsf]
+                set v_qsf_files_list [concat ${v_qsf_files_list} ${v_temporary_list}]
+            }
+
+            if {[file exists ${v_sdc_directory}] == 1} {
+                set v_temporary_list [fileutil::findByPattern ${v_sdc_directory} -glob -- *.sdc]
+                set v_sdc_files_list [concat ${v_sdc_files_list} ${v_temporary_list}]
+            }
+
+        }
+
+        set v_quartus_directory [file join ${v_project_path} quartus]
+
+        foreach v_qsf_file ${v_qsf_files_list} {
+            set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_qsf_file}]
+
+            if {[string equal "${v_project_name}.qsf" ${v_relative_file}] != 1} {
+                set v_result [catch {set_global_assignment -name SOURCE_TCL_SCRIPT_FILE \
+                                       ${v_relative_file}} v_result_text]
+                if {${v_result} != 0} {
+                    return -code ${v_result} ${v_result_text}
+                }
+            }
+        }
+
+        foreach v_sdc_file ${v_sdc_files_list} {
+            set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_sdc_file}]
+            set v_result [catch {set_global_assignment -name SDC_FILE ${v_relative_file}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+        }
+
+        return -code ok
+
+    }
 
 }
 
-main
+::create_shell::main

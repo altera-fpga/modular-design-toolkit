@@ -11,7 +11,7 @@
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-# # create script specific parameters and default values
+# create script specific parameters and default values
 
 # non user parameters, do not change (used for EMIF IP parameterization only)
 # changes in the preset will NOT be reflected in the pin assignments
@@ -62,12 +62,12 @@ proc derive_parameters {param_array} {
 
     # enable board HPS DDR interface if there is an HPS subsystem,
     # or an EMIF subsystem with the HPS port selected
-    set_shell_parameter DRV_HPS_DDR_EN       "0"
+    set_shell_parameter DRV_HPS_DDR_EN          "0"
     set_shell_parameter DRV_DDR4_PRESET_FILE    ""
 
     set_shell_parameter DRV_FPGA_DDR_EN         "0"
 
-    set v_ddr_enabled_banks {}
+    set v_ddr_enabled_banks                     {}
 
     for {set id 0} {$id < $p_array(project,id)} {incr id} {
 

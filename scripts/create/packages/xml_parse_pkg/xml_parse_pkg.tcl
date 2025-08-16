@@ -1,815 +1,1175 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-# Package of functions used for the xml parsing
-
 package provide xml_parse_pkg 1.0
+
 package require Tcl           8.0
 
-set script_dir [file dirname [info script]]
-lappend auto_path "$script_dir/../"
+package require xml
+package require xml::libxml2
+package require dom
+package require dom::tcl
+package require dom::libxml2
 
-package require query_pkg                 1.0
+set v_script_directory [file dirname [info script]]
+lappend auto_path [file join ${v_script_directory} ".."]
 
-namespace eval ::xml_parse_pkg {
-  # export commands
-  namespace export parse_xml_settings_file
+# Helper for XML design file parsing
 
-  variable pkg_dir [file join [pwd] [file dirname [info script]]]
+namespace eval xml_parse_pkg {
 
-  # setup state
-  #variable <variable_name>
-  variable xml_path 
-  variable shell_root 
-  variable param_array
-  variable path
-  variable subsystem_array
+    namespace export parse_xml_design_file
 
-}
+    variable pkg_dir [file join [pwd] [file dirname [info script]]]
 
-# SUB/INTERNAL FUNCTIONS ==============================================================
+    variable v_parameter_array
 
-proc check_required_params {param_array} {
+    # Namespace constants
+    set v_xml_path         ""
+    set v_toolkit_root     ""
+    set v_subsystems_root  ""
+    set v_document_element ""
 
-  # based on the bare minimum to open a Quartus project
-  set required_params [list  DEVICE DEVKIT FAMILY]    
+    # Minimum parameters required for Quartus Project creation
+    set v_required_parameters [list DEVICE DEVKIT FAMILY]
 
-  upvar $param_array p_array
+    # List of nodes with children
+    set v_parent_nodes [list PROJECT SUBSYSTEM ADDON_CARD]
 
-  array set temp_array [join $p_array(project,params)]
+    # Special parameter nodes (requiring extra parsing)
+    set v_memory_mapped_nodes [list "AVMM_HOST*"]
+    set v_interrupt_nodes     [list "IRQ_RX*"]
+    set v_path_nodes          [list "*_DIR" "*_FILE"]
 
-  foreach param $required_params {
-    if {![info exist temp_array($param)]} {
-      post_message -type error "Project parameter $param is not defined in the XML file"
-      exit
-    }
-  }
+    # Search paths relative to generated project file (.qpf)
+    set v_default_ip_search_paths [list [file join "." ".." "non_qpds_ip" "**" "*"]\
+                                        [file join "." ".." "rtl" "shell" "**" "*"]\
+                                        [file join "." ".." "rtl" "user"  "**" "*"]\
+                                        "\$"]
 
-  array unset temp_array
+    # Search paths (relative to v_toolkit_root, glob syntax)
+    set v_design_search_paths     [list [file join "."]]
+    set v_subsystem_search_paths  [list [file join "." "subsystems" "platform_designer_subsystems" "*_subsystem" "*_create.tcl"]]
+    set v_addon_card_search_paths [list [file join "." "subsystems" "platform_designer_subsystems" "board_subsystem" "addon_cards" "*" "*_create.tcl"]]
 
-  return 1
+    ###################################################################################
 
-}
+    # Parse the xml design file and create an associative array of parameters
 
-# loop for all children of node and return addon cards
+    proc ::xml_parse_pkg::parse_xml_design_file {xml_argument toolkit_root output_parameter_array} {
 
-proc get_xml_element_type {xml_node element_type} {
+        upvar ${output_parameter_array} v_output_parameter_array
 
-  set node_list {}
+        variable v_parameter_array
 
-  foreach child [::dom::node children $xml_node] {
+        set v_result [catch {::xml_parse_pkg::initialize_variables ${xml_argument} ${toolkit_root}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-    # ignore nodes that are not elements
-    if {[dom::node cget $child -nodeType] != "element"} {
-      continue
-    }
+        set v_result [catch {::xml_parse_pkg::parse_project} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-    set child_name [dom::node cget $child -nodeName]
+        set v_result [catch {::xml_parse_pkg::parse_subsystems} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-    if {$child_name == $element_type} {
-      lappend node_list $child
-    }
+        set v_result [catch {::xml_parse_pkg::post_process_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  }
+        array set v_output_parameter_array [array get v_parameter_array]
 
-  return $node_list
-
-}
-
-proc get_xml_subsystems {xml_node} {
-  return [get_xml_element_type $xml_node "SUBSYSTEM"]
-}
-
-proc get_xml_addon_cards {xml_node} {
-  return [get_xml_element_type $xml_node "ADDON_CARD"]
-}
-
-proc get_abs_path {xml_path path} {
-
-  # if script path is relative (to XML file) then convert to absolute path
-  if {[file pathtype $path]=="relative"} {           
-    set xml_dir     [file dirname $xml_path]
-    set full_path   [file join $xml_dir $path]
-    set output_path [file normalize $full_path]
-
-    # special case for a directory that ends with a /.
-    # this is used to indicate contents copy vs folder copy
-    # with the cp command. Hence ensure this is kept after
-    # path normalization
-    if {[file tail $full_path] == "."} {
-      set output_path [file join $output_path .]
-    }
-
-  } else {
-    set output_path $path
-  }
-
-  # ensure that the file exists
-  if {![file exists $output_path]} {
-    post_message -type error "XML Parse - path ($output_path) does not exist"
-    exit
-  }
-
-  return $output_path
-
-}
-
-proc get_xml_param_pair {xml_node xml_path param_name param_value} {
-
-  upvar $param_name   p_name
-  upvar $param_value  p_value
-
-  set p_name  [dom::node cget $xml_node -nodeName]
-  set p_value ""
-
-  if {[lsearch -exact [list PROJECT SUBSYSTEM ADDON_CARD] $p_name] >= 0} {
-    return 0
-  }
-
-  # loop for all lines of text in textnode (for multiline parameter)
-  foreach child [::dom::node children $xml_node] {
-
-    # ignore non-text child nodes
-    if {[dom::node cget $child -nodeType]!="textNode"} {
-      puts "ignored - something in $p_name"
-      continue
-    }
-    
-    # append current text node value to running value
-    set sub_value [dom::node cget $child -nodeValue]
-    set p_value $p_value$sub_value
-
-  }
-
-  # special nodes/parameters
-  #======================================================
-
-  if {[string match AVMM_HOST* $p_name]} {
-    set p_value [parse_avmm_parameter $xml_node $xml_path]
-    set p_value [list $p_value]
-  }
-
-  if {[string match IRQ_RX* $p_name]} {
-    set p_value [parse_irq_parameter $xml_node $xml_path]
-    set p_value [list $p_value]
-  }
-
-  # if the parameter is a directory 
-  if {[string match *_DIR $p_name]} {
-    set p_value [get_abs_path $xml_path $p_value]
-  }
-
-  # if the parameter is a file
-  if {[string match *_FILE $p_name]} {
-    set p_value [get_abs_path $xml_path $p_value]
-  }
-
-  return 1
-
-}
-
-proc add_param_pair_to_array {param_name param_value param_array} {
-
-  upvar $param_array p_array
-    
-  set len [llength $param_value]
-
-  puts "adding parameter ($len): $param_name - $param_value"
-
-  if {[info exists p_array($param_name)]} {
-    #lappend p_array($param_name) $param_value 
-    lappend p_array($param_name) {*}$param_value 
-  } else {
-    set p_array($param_name) $param_value
-  }
-
-}
-
-proc param_array_to_pair_list {} {
-
-    set params_list {}
-
-    foreach {name value} [array get param_array] {
-      lappend params_list [list $name $value]
-    }
-
-    return params_list
-
-}
-
-proc get_xml_params {xml_node xml_path} {
-
-  # create a temporary array for parameters (for search and replace operations)
-  array set param_array {}
-
-  # loop for all child nodes of the input node
-  foreach child [::dom::node children $xml_node] {
-
-    # ignore non-element child nodes
-    if {[dom::node cget $child -nodeType]!="element"} {
-      continue
-    }
-
-    set param_name  ""
-    set param_value ""
-
-    set success [get_xml_param_pair $child $xml_path param_name param_value]
-
-    if {$success} {
-      add_param_pair_to_array $param_name $param_value param_array
-    }
-  }
-
-  set params_list {}
-
-  foreach {name value} [array get param_array] {
-    lappend params_list [list $name $value]
-  }
-
-  return $params_list
-
-}
-
-
-proc get_xml_project_attributes {xml_node param_array} {
-
-  upvar $param_array p_array
-  
-  set attributes [dom::node cget $xml_node -attributes]      
-
-  # name attribute
-  if {[info exists ${attributes}(name)]} {                  
-    set p_array(project,name) [set ${attributes}(name)]
-  }
-
-}
-
-proc get_xml_attributes {xml_node xml_path param_array} {
-
-  upvar $param_array p_array
-
-  set id $p_array(project,id)
-  set p_array($id,class) [dom::node cget $xml_node -nodeName]
-  set attributes [dom::node cget $xml_node -attributes]      
-
-  # name attribute
-  if {[info exists ${attributes}(name)]} {                  
-    
-    set name [set ${attributes}(name)]
-
-    if {$name=="project"} {
-      post_message -type error "Name $name, cannot be used as a project or subsystem name"
-      return
-    } elseif {[info exists p_array($name,id)]} {
-      post_message -type error "Name $name, used by multiple subsystems"
-      return
-    }
-
-    set p_array($id,name) $name
-    set p_array($name,id) $id
-
-  }
-
-  # type attribute
-  if {[info exists ${attributes}(type)]} {
-    set p_array($id,type) [set ${attributes}(type)]
-  } elseif {${project} == 0} {
-    post_message -type error "Subsystem must have a type"
-    return
-  }
-
-}
-
-proc parse_project_params {param_array} {
-
-  upvar $param_array p_array
-  
-  array set temp_array [join $p_array(project,params)]
-
-  # concat all ip search paths into a single path
-
-  set paths $temp_array(DEFAULT_IP_SEARCH_PATH)
-  set ip_search_path_concat ""
-
-  foreach path $paths {
-    append ip_search_path_concat $path ";"
-  }
-
-  if {[info exists temp_array(IP_SEARCH_PATH)]} {
-
-    set paths $temp_array(IP_SEARCH_PATH)
-
-    # check all ip_search paths exist
-    foreach path $paths {
-      # remove the string **/* if it exists at the end of the path (used to indicate recursive)
-      regsub -all {\*\*/\*$} $path {} path_trim
-
-      if {![file exists $path_trim]} {
-        post_message -type error "IP Search Path: $path, does not exist"
-      } elseif {[file pathtype $path_trim]=="relative"} {
-        post_message -type error "IP Search Path: $path, must be an absolute path"
-      } else {
-        append ip_search_path_concat $path ";"
-      }
-    }
-  }
-
-  set params [list [list "IP_SEARCH_PATH_CONCAT" $ip_search_path_concat]]
-  set p_array(project,params) [list {*}$p_array(project,params) {*}$params]
-
-}
-
-proc parse_board_subsystem {xml_node xml_path param_array} {
-
-  upvar $param_array p_array
-
-  set addon_cards [get_xml_addon_cards $xml_node]
-
-  foreach card $addon_cards {
-
-    incr p_array(project,id)
-    set id $p_array(project,id)
-
-    get_xml_attributes $card $xml_path p_array
-    set p_array($id,params) [get_xml_params $card $xml_path]
-
-  }
-
-}
-
-proc parse_user_subsystem {xml_node xml_path param_array} {
-
-  upvar $param_array p_array
-
-    set id $p_array(project,id)
-
-    set attributes [dom::node cget $xml_node -attributes]   
-
-    if {[info exists ${attributes}(script)]} {
-      set script_path [set ${attributes}(script)]
-      set script_path [get_abs_path $xml_path $script_path]
-      set p_array($id,script) $script_path
-    } else {
-      post_message -type error "Subsystem of type $p_array($id,class) must have a script attribute"
-      return
-    }
-  
-}
-
-proc parse_import_subsystem {xml_node xml_path param_array} {
-
-    upvar $param_array p_array
-
-    set id $p_array(project,id)
-
-    set attributes [dom::node cget $xml_node -attributes]   
-
-    if {[info exists ${attributes}(script)]} {
-      set script_path [set ${attributes}(script)]
-      set script_path [get_abs_path $xml_path $script_path]
-      set p_array($id,script) $script_path
-    } else {
-      post_message -type error "Subsystem of type $p_array($id,class) must have a script attribute"
-      return
-    }
-}
-
-#==================================================================================================
-# special parameter parsing ( i.e. not just <parameter_name>value</parameter_name> )
-
-proc parse_avmm_parameter {xml_node xml_path} {
-
-  # offset defaults to "don't care"
-  set output_name ""
-  set output_offset "X"
-
-  # loop for all child nodes of the input node
-  foreach child [::dom::node children $xml_node] {
-
-    # ignore non-element child nodes
-    if {[dom::node cget $child -nodeType]!="element"} {
-      continue
-    }
-
-    set param_name  ""
-    set param_value ""
-
-    set success [get_xml_param_pair $child $xml_path param_name param_value]
-
-    if {$success} {
-      if {$param_name == "NAME"} {
-        set output_name $param_value
-      } elseif {$param_name == "OFFSET"} {
-        set output_offset $param_value
-      }
-    }
-
-  }
-
-  return [list $output_name $output_offset]
-
-}
-
-proc parse_irq_parameter {xml_node xml_path} {
-
-  # offset defaults to "don't care"
-  set output_name     ""
-  set output_priority "X"
-
-  # loop for all child nodes of the input node
-  foreach child [::dom::node children $xml_node] {
-
-    # ignore non-element child nodes
-    if {[dom::node cget $child -nodeType]!="element"} {
-      continue
-    }
-
-    set param_name  ""
-    set param_value ""
-
-    set success [get_xml_param_pair $child $xml_path param_name param_value]
-
-    if {$success} {
-      if {$param_name == "NAME"} {
-        set output_name $param_value
-      } elseif {$param_name == "PRIORITY"} {
-        set output_priority $param_value
-      }
-    }
-
-  }
-
-  return [list $output_name $output_priority]
-
-}
-
-proc init_param_array {param_array xml_path} {
-
-  upvar $param_array p_array
-
-  # set project level parameters
-  set p_array(project,name) "top"         ;# set default project name
-  set p_array(project,params) {}
-  set p_array(project,id) 0               ;# this keeps track of the number of subsystems in the shell design
-
-  set p_array(project,xml_path) $xml_path
-
-  set DEFAULT_IP_SEARCH_PATH [list "./../non_qpds_ip/**/*"              \
-                                   "./../rtl/shell/**/*"                \
-                                   "./../rtl/user/**/*"                 \
-                              ]
-
-  set param_pair [list [list "DEFAULT_IP_SEARCH_PATH" $DEFAULT_IP_SEARCH_PATH]]
-  set p_array(project,params) [list {*}$p_array(project,params) {*}$param_pair]
-
-  # top subsystem must be included as a subsystem, but is not explicitly defined by the user in the XML file
-  # this also shares its name with the project name
-
-  set id $p_array(project,id)
-  set p_array($id,name) $p_array(project,name)
-  set p_array($p_array(project,name),id) $id
-  set p_array($id,class) "SUBSYSTEM"
-  set p_array($id,type) "top"
-  set p_array($id,params) {}
-
-  incr p_array(project,id)
-
-}
-
-
-proc get_xml_doc_element {xml_path} {
-
-  if {![file exists $xml_path]} {
-    post_message -type error "XML path does not exist"
-    qexit -error
-  }
-
-  set fp [open $xml_path r]                       ;# open file, read contents, and close file
-  set xml_data [read $fp]
-  close $fp
-
-  set doc_data [::dom::parse $xml_data]       ;# convert xml to dom format
-
-  set doc_el [dom::document cget $doc_data -documentElement]  ;# get the main wrapper element
-
-  if {[dom::node cget $doc_el -nodeName] != "PROJECT"} {      
-    post_message -type error "incorrect document element"
-    qexit -error
-  }
-
-  return $doc_el
-
-}
-
-proc print_param_array {param_array} {
-
-  upvar $param_array p_array
-
-  puts "\n============================================="
-
-  if {[info exists p_array(project,name)]} {
-    puts "Project name: $p_array(project,name)"
-  }
-
-  if {[info exists p_array(project,params)]} {
-    foreach param_pair $p_array(project,params) {
-      set name  [lindex $param_pair 0]
-      set value [lindex $param_pair 1]
-      puts "\tParameter: $name : $value"
-    }
-  }
-
-  puts "---------------------------------------------"
-
-  for {set id 0} {$id < $p_array(project,id)} {incr id} {
-    
-    if {[info exists p_array($id,class)]} {
-      set type $p_array($id,class)
-    }  
-
-    if {[info exists p_array($id,name)]} {
-      puts "$type name: $p_array($id,name)"
-    }
-
-    if {[info exists p_array($id,type)]} {
-      puts "$type type: $p_array($id,type)"
-    }  
-
-    if {[info exists p_array($id,script)]} {
-      puts "$type script: $p_array($id,script)"
-    }
-
-    if {[info exists p_array($id,params)]} {
-      foreach param_pair $p_array($id,params) {
-        set name  [lindex $param_pair 0]
-        set value [lindex $param_pair 1]
-        puts "\tParameter: $name - $value"
-      }
-    }
-
-    if {$id < [expr $p_array(project,id)-1]} {
-      puts "---------------------------------------------"
-    }
-
-  }
-
-  puts "=============================================\n"
-
-}
-
-proc assign_unique_names {param_array} {
-
-  upvar $param_array p_array
-
-  # use a temporary array to store the subsystem name index <type>_<class>_<index>
-  # which saves iterating through previously searched indexes
-  array set temp_array {}
-                              
-  for {set id 0} {$id < $p_array(project,id)} {incr id} {
-
-    # skip if name exists
-    if {[info exists p_array($id,name)]} {    
-      lappend p_array($id,params) [list "INSTANCE_NAME" $p_array($id,name)]
-      continue
-    }
-
-    set index 0
-    set class $p_array($id,class)
-    set lower_class [string tolower $class]
-    set type  $p_array($id,type)
-
-    # if a name has already been generated for this class/type combination
-    # use the saved index to create the first autogenerated name
-    if {[info exists temp_array($class,$type)]} {
-      set index $temp_array($class,$type)                    
-    }                                                 
-
-    set name "${type}_${lower_class}_${index}"
-
-    # loop until a unique name is generated (by incrementing the index in each loop)
-    # or, the number of attempts is exceeded
-    while {[info exists p_array($name,id)]} {
-
-      incr index                                      
-      set name "${type}_${lower_class}_${index}"      
-
-      # exit condition to ensure we don't get stuck in an infinite loop
-      if {($index >= 100)} {
-        post_message -type error "Error: Unable to generate subsystem name automatically"
-        return
-      }
+        return -code ok
 
     }
 
-    # write generated name to the parameter array
-    set p_array($id,name) $name                 
-    set p_array($name,id) $id
-    lappend p_array($id,params) [list "INSTANCE_NAME" $p_array($id,name)]
+    # Initialize variables (XML path, toolkit root, document element (base node))
 
-    # save the index for later use
-    incr index
-    set temp_array($class,$type) $index
+    proc ::xml_parse_pkg::initialize_variables {xml_argument toolkit_root} {
 
-  }
+        set v_result [catch {::xml_parse_pkg::set_xml_path ${xml_argument}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  array unset temp_array
+        set v_result [catch {::xml_parse_pkg::set_toolkit_root ${toolkit_root}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-}
+        set v_result [catch {::xml_parse_pkg::set_xml_document_element} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
+        return -code ok
 
-proc assign_scripts {shell_root param_array} {
-  
-  upvar $param_array p_array
-
-  array set valid_subsystems {}
-  ::xml_parse_pkg::get_available_subsystems $shell_root valid_subsystems
-
-  array set valid_addon_cards {}
-  ::xml_parse_pkg::get_available_addon_cards $shell_root valid_addon_cards
-
-  # assign creation scripts to the subsystems requested in the xml file
-  for {set id 0} {$id < $p_array(project,id)} {incr id} {
-
-    set class $p_array($id,class)
-    set type  $p_array($id,type)
-
-    # skip any subsystems that already have scripts defined
-    if {[info exists p_array($id,script)]} {
-      continue
     }
 
-    if {$class == "SUBSYSTEM"} {
-      if {[info exists valid_subsystems($type)]} {
-        set p_array($id,script) $valid_subsystems($type)
-      } else {
-        post_message -type error "Error - The $class ($p_array($id,name)) of type ($type) does not match any available $class"
-        return
-      }
-    } elseif {$class == "ADDON_CARD"} {
-      if {[info exists valid_addon_cards($type)]} {
-        set p_array($id,script) $valid_addon_cards($type)
-      } else {
-        post_message -type error "Error - The $class ($p_array($id,name)) of type ($type) does not match any available $class"
-        return
-      }
-    } else {
-        post_message -type error "Unknown $class"
-        return
+    # Parse project attributes and parameters
+
+    proc ::xml_parse_pkg::parse_project {} {
+
+        variable v_parameter_array
+
+        set v_result [catch {::xml_parse_pkg::initialize_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::xml_parse_pkg::parse_project_attributes\
+                             ${::xml_parse_pkg::v_document_element}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::xml_parse_pkg::get_node_parameters ${::xml_parse_pkg::v_document_element}} v_parameters]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_parameters}
+        }
+
+        set v_parameter_array(project,params) [list {*}$v_parameter_array(project,params) {*}${v_parameters}]
+
+        set v_result [catch {::xml_parse_pkg::process_project_parameters} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        return -code ok
+
     }
 
-  }
+    # Parse subsystem attributes and parameters
 
-}
+    proc ::xml_parse_pkg::parse_subsystems {} {
 
-proc check_avmm_hosts {param_array} {
-  
-  upvar $param_array p_array
+        variable v_parameter_array
 
-  set avmm_hosts_list {}
+        set v_result [catch {::xml_parse_pkg::get_subsystem_nodes\
+                             ${::xml_parse_pkg::v_document_element}} v_subsystem_nodes]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_subsystem_nodes}
+        }
 
-  for {set id 0} {$id < $p_array(project,id)} {incr id} {
+        foreach v_subsystem ${v_subsystem_nodes} {
 
-    set class $p_array($id,class)
-    set type  $p_array($id,type)
+            set v_id $v_parameter_array(project,id)
 
-    if {$class == "SUBSYSTEM"} {
+            set v_result [catch {::xml_parse_pkg::parse_subsystem_attributes ${v_subsystem}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
 
-      set index [lsearch -exact {hps cpu niosv} $type]
+            set v_result [catch {::xml_parse_pkg::get_node_parameters ${v_subsystem}} v_parameters]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_parameters}
+            }
 
-      if {$index >= 0} {
-        lappend avmm_hosts_list $id
-      }
+            set v_parameter_array(${v_id},params) ${v_parameters}
 
-    } 
+            # parse special subsystems
+            switch -exact $v_parameter_array(${v_id},type) {
+                board   {
+                    set v_result [catch {::xml_parse_pkg::parse_board_subsystem ${v_subsystem}} v_result_text]
+                    if {${v_result} != 0} {
+                        return -code ${v_result} ${v_result_text}
+                    }
+                }
+                user    {
+                    set v_result [catch {::xml_parse_pkg::parse_user_subsystem ${v_subsystem}} v_result_text]
+                    if {${v_result} != 0} {
+                        return -code ${v_result} ${v_result_text}
+                    }
+                }
+                default {}
+            }
 
-  }
+            incr v_parameter_array(project,id)
 
-  return
+        }
 
-}
+        return -code ok
 
-# function to pre-process the xml_path input argument to arrive at the full-absolute xml file path
-
-proc process_xml_path { xml_path shell_designs_root } {
-  set v_extension [file extension $xml_path]
-
-  if { $v_extension == ""} {
-    # if xml_path argument has no extension
-    set v_xml_list [fileutil::findByPattern $shell_designs_root -glob -- $xml_path.xml]
-  } elseif { $v_extension == ".xml" } {
-    # if xml_path has xml extension then check for the existance of the file based on absolute path or in the shell_designs folder
-    set v_nor_xml_path  [file normalize $xml_path]
-    if {![file exists $v_nor_xml_path]} {
-      set v_xml_list [fileutil::findByPattern $shell_designs_root -glob -- $xml_path]
-    } else {
-      set v_xml_list $v_nor_xml_path
-    }
-  } else {
-    post_message -type error "Provide a valid XML file"
-    qexit -error
-  }
-
-  return [lindex $v_xml_list 0]
-}
-
-
-# MAIN FUNCTIONS ======================================================================
-
-proc ::xml_parse_pkg::parse_xml_settings_file {xml_path shell_root shell_designs_root param_array} {
-
-  upvar $param_array p_array
-
-  set xml_path [process_xml_path $xml_path $shell_designs_root]
-
-  set doc_el [get_xml_doc_element $xml_path]
-
-  init_param_array p_array $xml_path
-
-  # get project level information (note: params list is concatenated 
-  # as default parameters are set for ip search path)
-
-  get_xml_project_attributes $doc_el p_array
-  set params [get_xml_params $doc_el $xml_path]
-  set p_array(project,params) [list {*}$p_array(project,params) {*}$params]
-
-  parse_project_params p_array
-
-  # get subsystem level information
-  set subsystem_nodes [get_xml_subsystems $doc_el]
-
-  foreach subsystem $subsystem_nodes {
-
-    set id $p_array(project,id)
-
-    get_xml_attributes $subsystem $xml_path p_array
-    set p_array($id,params) [get_xml_params $subsystem $xml_path]
-
-    # handle subsystem specific information not captured by default
-    switch -exact $p_array($id,type) {
-      board     { parse_board_subsystem   $subsystem $xml_path  p_array}
-      user      { parse_user_subsystem    $subsystem $xml_path  p_array}
-      #import    { parse_import_subsystem  $subsystem $xml_path  p_array}
-      default   {}
     }
 
-    incr p_array(project,id)
+    # Post process parameters (check parameters, assign subsystem names/scripts)
 
-  }
+    proc ::xml_parse_pkg::post_process_parameter_array {} {
 
-  check_required_params p_array
+        set v_result [catch {::xml_parse_pkg::check_required_parameters} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  assign_unique_names p_array
+        set v_result [catch {::xml_parse_pkg::set_subsystem_names} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  assign_scripts $shell_root p_array
+        set v_result [catch {::xml_parse_pkg::set_subsystem_scripts} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
 
-  check_avmm_hosts p_array
+        return -code ok
 
-  print_param_array p_array
+    }
 
-  return
+    # Parse the xml argument and set the namespace constant v_xml_path
+    # - If the argument is a design file without directory (e.g. design.xml)
+    #   it is assumed to be a toolkit provided design. The absolute file path is
+    #   obtained by searching toolkit design locations for the design file.
+    # - Otherwise the design file is normalized to an absolute file path.
 
-}
+    proc ::xml_parse_pkg::set_xml_path {xml_argument} {
 
-# searches the path for subsystem creation scripts and writes the results to the input array
+        set v_extension [file extension ${xml_argument}]
 
-proc ::xml_parse_pkg::get_available_subsystems {path subsystem_array} {
+        if {[string equal -nocase ".xml" ${v_extension}] != 1} {
+            return -code error "Design file must have .xml extension"
+        }
 
-  upvar $subsystem_array s_array
+        set v_directory [file dirname ${xml_argument}]
 
-  set found_subsystems [glob -directory $path -type f *_subsystem/*_create.tcl]
-  
-  foreach subsystem $found_subsystems {
-    set name [string range [file tail $subsystem] 0 end-11]
-    set s_array($name) $subsystem
-  }
+        if {[string equal "." ${v_directory}] == 1} {
 
-}
+            set v_found_xml_files {}
 
-proc ::xml_parse_pkg::get_available_addon_cards {path subsystem_array} {
+            foreach v_relative_search_path ${::xml_parse_pkg::v_design_search_paths} {
+                set v_absolute_search_path [file join ${::xml_parse_pkg::v_toolkit_root} ${v_relative_search_path}]
+                set v_temporary_xml_files  [fileutil::findByPattern ${v_absolute_search_path} -glob -- ${xml_argument}]
+                set v_found_xml_files      [list {*}${v_found_xml_files} {*}${v_temporary_xml_files}]
+            }
 
-  upvar $subsystem_array s_array
+            if {[llength ${v_found_xml_files}] == 0} {
+                return -code error "Unable to find design file (${xml_argument}) in default search paths"
+            } elseif {[llength ${v_found_xml_files}] > 1} {
+                return -code error "Multiple design files found for ${xml_argument}\
+                                    provide full path to file.\n(${v_found_xml_files})"
+            } else {
+                set v_normalized_xml_path [lindex ${v_found_xml_files} 0]
+                set v_normalized_xml_path [file normalize ${v_normalized_xml_path}]
+            }
 
-#  set found_addon_cards [glob -directory $path -type f board_subsystem/addon_cards/*/*_create.tcl]
-  if {[file exists $path/board_subsystem/addon_cards] && [file isdirectory $path/board_subsystem/addon_cards]} {
-    set found_addon_cards [glob -nocomplain -directory $path -type f board_subsystem/addon_cards/*/*_create.tcl]
-} else {
-    set found_addon_cards {}
-}
+        } else {
 
-  
-  foreach addon_card $found_addon_cards {
-    set name [string range [file tail $addon_card] 0 end-11]
-    set s_array($name) $addon_card
-  }
+            set v_normalized_xml_path [file normalize ${xml_argument}]
+
+            if {[file exists ${v_normalized_xml_path}] != 1} {
+                return -code error "Unable to find design file (${v_normalized_xml_path})"
+            }
+        }
+
+        set ::xml_parse_pkg::v_xml_path ${v_normalized_xml_path}
+
+        return -code ok
+
+    }
+
+    # Set the namespace constant v_toolkit_root and v_subsystems_root
+
+    proc ::xml_parse_pkg::set_toolkit_root {toolkit_root} {
+
+        if {[file exists ${toolkit_root}] != 1} {
+            return -code error ""
+        } elseif {[file isdirectory ${toolkit_root}] != 1} {
+            return -code error ""
+        }
+
+        set ::xml_parse_pkg::v_toolkit_root ${toolkit_root}
+        set ::xml_parse_pkg::v_subsystems_root [file join ${toolkit_root} subsystems platform_designer_subsystems]
+
+        return -code ok
+
+    }
+
+    # Set the namespace constant v_document_element
+
+    proc ::xml_parse_pkg::set_xml_document_element {} {
+
+        if {[file exists ${::xml_parse_pkg::v_xml_path}] != 1} {
+            return -code error "XML file does not exist (${::xml_parse_pkg::v_xml_path})"
+        }
+
+        set v_result [catch {open ${::xml_parse_pkg::v_xml_path} r} v_file]
+        if {${v_result} != 0} {
+            return -code error "Unable to open XML file (${::xml_parse_pkg::v_xml_path}): ${v_file}"
+        }
+
+        set v_xml_data [read ${v_file}]
+        close ${v_file}
+
+        set v_dom_data                          [::dom::parse ${v_xml_data}]
+        set ::xml_parse_pkg::v_document_element [::dom::document cget ${v_dom_data} -documentElement]
+
+        set v_name [::dom::node cget ${::xml_parse_pkg::v_document_element} -nodeName]
+
+        if {[string equal "PROJECT" ${v_name}] != 1} {
+            return -code error "Incorrect document element name, expected PROJECT, received ${v_name}"
+        }
+
+        return -code ok
+
+    }
+
+    # Initialize parameter array to default values
+
+    proc ::xml_parse_pkg::initialize_parameter_array {} {
+
+        variable v_parameter_array
+
+        set v_parameter_array(project,name)     "top"
+        set v_parameter_array(project,params)   {}
+        set v_parameter_array(project,id)       0
+        set v_parameter_array(project,xml_path) ${::xml_parse_pkg::v_xml_path}
+
+        lappend v_parameter_array(project,params) [list DEFAULT_IP_SEARCH_PATH\
+                                                        ${::xml_parse_pkg::v_default_ip_search_paths}]
+        lappend v_parameter_array(project,params) [list TOOLKIT_ROOT ${::xml_parse_pkg::v_toolkit_root}]
+        lappend v_parameter_array(project,params) [list SHELL_DESIGN_ROOT ${::xml_parse_pkg::v_subsystems_root}]
+
+        # Top subsystem is an internal (hidden) subsystem required for general project management
+        set v_id $v_parameter_array(project,id)
+        set v_parameter_array(${v_id},name) $v_parameter_array(project,name)
+        set v_parameter_array($v_parameter_array(project,name),id) ${v_id}
+        set v_parameter_array(${v_id},class)  "SUBSYSTEM"
+        set v_parameter_array(${v_id},type)   "top"
+        set v_parameter_array(${v_id},params) {}
+
+        incr v_parameter_array(project,id)
+
+        return -code ok
+
+    }
+
+    # Check required parameters are declared in parameter array
+
+    proc ::xml_parse_pkg::check_required_parameters {} {
+
+        variable v_parameter_array
+
+        array set v_array [join $v_parameter_array(project,params)]
+
+        foreach v_parameter ${::xml_parse_pkg::v_required_parameters} {
+            if {[info exist v_array(${v_parameter})] == 0} {
+                return -code error "Project parameter ${v_parameter} is not defined in the XML file"
+            }
+        }
+
+        array unset v_array
+
+        return -code ok
+
+    }
+
+    # Set names of subsystems without (xml defined) names
+
+    proc ::xml_parse_pkg::set_subsystem_names {} {
+
+        variable v_parameter_array
+
+        array set v_temporary_array {}
+
+        # Create a temporary array of subsystems with unassigned names
+        for {set v_id 0} {${v_id} < $v_parameter_array(project,id)} {incr v_id} {
+
+            if {[info exists v_parameter_array(${v_id},name)] != 1} {
+
+                set v_class       $v_parameter_array(${v_id},class)
+                set v_class_lower [string tolower ${v_class}]
+                set v_type        $v_parameter_array(${v_id},type)
+
+                set v_name        "${v_type}_${v_class_lower}"
+
+                if {[info exists v_temporary_array(${v_name})] != 1} {
+                    set v_temporary_array(${v_name}) [list ${v_id}]
+                } else {
+                    lappend v_temporary_array(${v_name}) ${v_id}
+                }
+            }
+        }
+
+        # Generate names
+        foreach {v_base_name v_ids} [array get v_temporary_array] {
+
+            set v_base_index 0
+
+            foreach v_id ${v_ids} {
+
+                if {[llength ${v_ids}] == 1} {
+                    set v_name ${v_base_name}
+
+                    if {[info exists v_parameter_array(${v_name},id)] == 0} {
+                        set v_parameter_array(${v_id},name) ${v_name}
+                        continue
+                    }
+                }
+
+                for {set v_index ${v_base_index}} {${v_index} < [expr ${v_base_index} + 1000]} {incr ${v_index}} {
+                    set v_name "${v_base_name}_${v_index}"
+
+                    if {[info exists v_parameter_array(${v_name},id)] == 0} {
+                        set v_parameter_array(${v_id},name) ${v_name}
+                        set v_base_index [expr ${v_index} + 1]
+                        break
+                    }
+                }
+
+                if {[string equal "" $v_parameter_array(${v_id},name)] == 1} {
+                    set v_class [string tolower $v_parameter_array(${v_id},class)]
+                    set v_type  $v_parameter_array(${v_id},type)
+                    return -code error "Unable to assign unique name for ${v_class} - ${v_type}"
+                }
+            }
+        }
+
+        # Propagate names to parameter array
+        for {set v_id 0} {${v_id} < $v_parameter_array(project,id)} {incr v_id} {
+            set v_name $v_parameter_array(${v_id},name)
+            set v_parameter_array(${v_name},id) ${v_id}
+            lappend v_parameter_array(${v_id},params) [list "INSTANCE_NAME" $v_parameter_array(${v_id},name)]
+        }
+
+        array unset v_temporary_array
+
+        return -code ok
+
+    }
+
+    # Set subsystem creation scripts
+    # User subsystem scripts are assigned in the parse_user_subsystem procedure
+    # from the XML file; all others (toolkit provided subsystems) are assigned here.
+
+    proc ::xml_parse_pkg::set_subsystem_scripts {} {
+
+        variable v_parameter_array
+
+        array set v_available_subsystems  {}
+        array set v_available_addon_cards {}
+
+        set v_result [catch {::xml_parse_pkg::get_available_subsystems v_available_subsystems} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        set v_result [catch {::xml_parse_pkg::get_available_addon_cards v_available_addon_cards} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
+        for {set v_id 0} {${v_id} < $v_parameter_array(project,id)} {incr v_id} {
+
+            if {[info exists v_parameter_array(${v_id},script)] == 1} {
+                continue
+            }
+
+            set v_class $v_parameter_array(${v_id},class)
+            set v_type  $v_parameter_array(${v_id},type)
+
+            if {[string equal "SUBSYSTEM" ${v_class}] == 1} {
+                if {[info exists v_available_subsystems(${v_type})] == 1} {
+                    set v_parameter_array(${v_id},script) $v_available_subsystems(${v_type})
+                } else {
+                    return -code error "The ${v_class} ($v_parameter_array(${v_id},name)) of type (${v_type})\
+                                        does not match any available ${v_class}"
+                }
+            } elseif {[string equal "ADDON_CARD" ${v_class}] == 1} {
+                if {[info exists v_available_addon_cards(${v_type})] == 1} {
+                    set v_parameter_array(${v_id},script) $v_available_addon_cards(${v_type})
+                } else {
+                    return -code error "The ${v_class} ($v_parameter_array(${v_id},name)) of type (${v_type})\
+                                        does not match any available ${v_class}"
+                }
+            } else {
+                return -code error "Unknown ${v_class} (($v_parameter_array(${v_id},name)))"
+            }
+        }
+
+        return -code ok
+
+    }
+
+    # Get list of all subsystems
+
+    proc ::xml_parse_pkg::get_available_subsystems {subsystem_array} {
+
+        upvar ${subsystem_array} v_subsystem_array
+
+        foreach v_search_path ${::xml_parse_pkg::v_subsystem_search_paths} {
+            set v_subsystems [glob -nocomplain -directory ${::xml_parse_pkg::v_toolkit_root} -type f ${v_search_path}]
+
+            foreach v_subsystem ${v_subsystems} {
+                set v_subsystem_file [file tail ${v_subsystem}]
+                set v_result [regexp {(.*)_create\.tcl$} ${v_subsystem_file} v_match v_subsystem_name]
+                if {${v_result} != 1} {
+                    return -code error "Unable to retrieve subsystem name from path (${v_subsystem})"
+                }
+
+                if {[info exists v_subsystem_array(${v_subsystem_name})] != 0} {
+                    return -code error "Duplicate subsystem names (${v_subsystem})"
+                }
+
+                set v_subsystem_array(${v_subsystem_name}) ${v_subsystem}
+
+            }
+        }
+
+        return -code ok
+
+    }
+
+    # Get list of all addon cards
+
+    proc ::xml_parse_pkg::get_available_addon_cards {addon_card_array} {
+
+        upvar ${addon_card_array} v_addon_card_array
+
+        foreach v_search_path ${::xml_parse_pkg::v_addon_card_search_paths} {
+            set v_addon_cards [glob -nocomplain -directory ${::xml_parse_pkg::v_toolkit_root} -type f ${v_search_path}]
+
+            foreach v_addon_card ${v_addon_cards} {
+                set v_addon_card_file [file tail ${v_addon_card}]
+                set v_result [regexp {(.*)_create\.tcl$} ${v_addon_card_file} v_match v_addon_card_name]
+                if {${v_result} != 1} {
+                    return -code error "Unable to retrieve addon card name from path (${v_addon_card})"
+                }
+
+                if {[info exists v_addon_card_array(${v_addon_card_name})] != 0} {
+                    return -code error "Duplicate addon card names (${v_addon_card})"
+                }
+
+                set v_addon_card_array(${v_addon_card_name}) ${v_addon_card}
+
+            }
+        }
+
+        return -code ok
+
+    }
+
+    ###################################################################################
+    # Node processing
+
+    # Find children of the XML node that match the element type
+
+    proc ::xml_parse_pkg::find_children_of_element_type {xml_node element_type} {
+
+        set v_matches {}
+
+        foreach v_child [::dom::node children ${xml_node}] {
+
+            if {[::dom::node cget ${v_child} -nodeType] != "element"} {
+                continue
+            }
+
+            set v_child_name [::dom::node cget ${v_child} -nodeName]
+
+            if {[string equal ${v_child_name} ${element_type}] == 1} {
+                lappend v_matches ${v_child}
+            }
+        }
+
+        return ${v_matches}
+
+    }
+
+    # Find children of the XML node that are subsystems
+
+    proc ::xml_parse_pkg::get_subsystem_nodes {xml_node} {
+
+        set v_subsystem_nodes [::xml_parse_pkg::find_children_of_element_type ${xml_node} "SUBSYSTEM"]
+        return ${v_subsystem_nodes}
+
+    }
+
+    # Find children of the XML node that are addon cards
+
+    proc ::xml_parse_pkg::get_addon_card_nodes {xml_node} {
+
+        set v_addon_cards [::xml_parse_pkg::find_children_of_element_type ${xml_node} "ADDON_CARD"]
+        return ${v_addon_cards}
+
+    }
+
+    ###################################################################################
+    # Parameter processing
+
+    # Get parameters from node
+
+    proc ::xml_parse_pkg::get_node_parameters {xml_node} {
+
+        array set v_local_parameter_array {}
+
+        foreach v_child [::dom::node children ${xml_node}] {
+
+            if {[::dom::node cget ${v_child} -nodeType] != "element"} {
+                continue
+            }
+
+            set v_result [catch {::xml_parse_pkg::get_node_parameter_pair ${v_child}} v_parameter_pair]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_parameter_pair}
+            }
+
+            set v_result [catch {::xml_parse_pkg::add_parameter_pair_to_array \
+                ${v_parameter_pair} v_local_parameter_array} v_result_text]
+
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+        }
+
+        set v_parameters_list {}
+
+        foreach {v_parameter_name v_parameter_value} [array get v_local_parameter_array] {
+            lappend v_parameters_list [list ${v_parameter_name} ${v_parameter_value}]
+        }
+
+        return ${v_parameters_list}
+
+    }
+
+    # Get parameter name and value from node
+
+    proc ::xml_parse_pkg::get_node_parameter_pair {xml_node} {
+
+        set v_node_name  [::dom::node cget ${xml_node} -nodeName]
+        set v_node_value ""
+
+        if {[lsearch -exact ${::xml_parse_pkg::v_parent_nodes} ${v_node_name}] >= 0} {
+            return -code ok {}
+        }
+
+        # Parse memory mapped node
+        foreach v_memory_mapped_node ${::xml_parse_pkg::v_memory_mapped_nodes} {
+            if {[string match ${v_memory_mapped_node} ${v_node_name}] == 1} {
+                set v_result [catch {::xml_parse_pkg::get_memory_mapped_parameter ${xml_node}} v_node_value]
+
+                if {${v_result} != 0} {
+                    return -code error ${v_node_value}
+                }
+
+                set v_node_value [list ${v_node_value}]
+
+                return -code ok  [list ${v_node_name} ${v_node_value}]
+            }
+        }
+
+        # Parse interrupt node
+        foreach v_interrupt_node ${::xml_parse_pkg::v_interrupt_nodes} {
+            if {[string match ${v_interrupt_node} ${v_node_name}] == 1} {
+                set v_result [catch {::xml_parse_pkg::get_interrupt_parameter ${xml_node}} v_node_value]
+                if {${v_result} != 0} {
+                    return -code error ${v_node_value}
+                }
+
+                set v_node_value [list ${v_node_value}]
+
+                return -code ok  [list ${v_node_name} ${v_node_value}]
+            }
+        }
+
+        # Parse standard node (concatenate multiline values)
+        foreach v_child [::dom::node children ${xml_node}] {
+            set v_node_type [::dom::node cget ${v_child} -nodeType]
+
+            if {[string equal -nocase ${v_node_type} "textNode"] != 1} {
+                return -code error "XML Parser - unexpected non-text node in node (${v_node_name})"
+            }
+
+            set v_value [::dom::node cget ${v_child} -nodeValue]
+            set v_node_value ${v_node_value}${v_value}
+        }
+
+        # Convert path node to an absolute path
+        foreach v_path_node ${::xml_parse_pkg::v_path_nodes} {
+            if {([string match ${v_path_node} ${v_node_name}] == 1)} {
+                set v_result [catch {::xml_parse_pkg::convert_to_absolute_path ${v_node_value}} v_node_value]
+
+                if {${v_result} != 0} {
+                    return -code ${v_result} ${v_node_value}
+                } else {
+                    return -code ok [list ${v_node_name} ${v_node_value}]
+                }
+            }
+        }
+
+        return -code ok [list ${v_node_name} ${v_node_value}]
+
+    }
+
+    # Add a parameter pair to the parameter array
+
+    proc ::xml_parse_pkg::add_parameter_pair_to_array {parameter parameter_array} {
+
+        upvar ${parameter_array} v_parameter_array
+
+        set v_parameter_length [llength ${parameter}]
+
+        if {${v_parameter_length} == 2} {
+            set v_parameter_name  [lindex ${parameter} 0]
+            set v_parameter_value [lindex ${parameter} 1]
+
+            if {[info exists v_parameter_array(${v_parameter_name})] == 1} {
+                lappend v_parameter_array(${v_parameter_name}) {*}${v_parameter_value}
+            } else {
+                set v_parameter_array(${v_parameter_name}) ${v_parameter_value}
+            }
+
+        } elseif {${v_parameter_length} == 0} {
+            return -code ok
+        } else {
+            return -code error "Incorrect number of entries in parameter pair list: expected 2 got ${v_parameter_length}"
+        }
+
+        return -code ok
+
+    }
+
+    ###################################################################################
+    # Attribute parsers
+
+    # Parse attributes of PROJECT node
+
+    proc ::xml_parse_pkg::parse_project_attributes {xml_node} {
+
+        variable v_parameter_array
+
+        set v_class [::dom::node cget ${xml_node} -nodeName]
+
+        if {[string equal "PROJECT" ${v_class}] != 1} {
+            return -code error "Expected PROJECT node, received ${v_class}"
+        }
+
+        set v_attributes [::dom::node cget ${xml_node} -attributes]
+
+        if {[info exists ${v_attributes}(name)] == 1} {
+            set v_parameter_array(project,name) [set ${v_attributes}(name)]
+        }
+
+        return -code ok
+
+    }
+
+    # Parse attributes of SUBSYSTEM node
+
+    proc ::xml_parse_pkg::parse_subsystem_attributes {xml_node} {
+
+        variable v_parameter_array
+
+        set v_class [::dom::node cget ${xml_node} -nodeName]
+
+        if {[string equal "SUBSYSTEM" ${v_class}] != 1} {
+            return -code error "Expected SUBSYSTEM node, received ${v_class}"
+        }
+
+        set v_id $v_parameter_array(project,id)
+        set v_parameter_array(${v_id},class) ${v_class}
+
+        set v_attributes [::dom::node cget ${xml_node} -attributes]
+
+        if {[info exists ${v_attributes}(type)] == 1} {
+            set v_parameter_array(${v_id},type) [set ${v_attributes}(type)]
+        } else {
+            return -code error "SUBSYSTEM node requires a 'type' attribute"
+        }
+
+        if {[info exists ${v_attributes}(name)]} {
+
+            set v_name [set ${v_attributes}(name)]
+
+            if {[info exists v_parameter_array(${v_name},id)] == 1} {
+                return -code error "SUBSYSTEM name: ${v_name}, in use by multiple subsystems"
+            }
+
+            set v_parameter_array(${v_id},name) ${v_name}
+            set v_parameter_array(${v_name},id) ${v_id}
+
+        }
+
+        return -code ok
+
+    }
+
+    # Parse attributes of ADDON_CARD node
+
+    proc ::xml_parse_pkg::parse_addon_card_attributes {xml_node} {
+
+        variable v_parameter_array
+
+        set v_class [::dom::node cget ${xml_node} -nodeName]
+
+        if {[string equal "ADDON_CARD" ${v_class}] != 1} {
+            return -code error "Expected ADDON_CARD node, received ${v_class}"
+        }
+
+        set v_id $v_parameter_array(project,id)
+        set v_parameter_array(${v_id},class) ${v_class}
+
+        set v_attributes [::dom::node cget ${xml_node} -attributes]
+
+        if {[info exists ${v_attributes}(type)] == 1} {
+            set v_parameter_array(${v_id},type) [set ${v_attributes}(type)]
+        } else {
+            return -code error "ADDON_CARD node requires a 'type' attribute"
+        }
+
+        return -code ok
+
+    }
+
+    ###################################################################################
+    # Parameter parsers
+
+    # Parse project parameters
+
+    # The optional parameter IP_SEARCH_PATH specifies absolute paths to directories containing IP.
+    # This is provided as an alternative to copying IP into the project folder upon creation.
+    # When moving the project directory access to these paths must be maintained.
+    # Example use case: Testing pre-release ip when the IP already exists in the Quartus/Platform Designer
+    #                   IP catalog (the highest version number is used)
+
+    proc ::xml_parse_pkg::process_project_parameters {} {
+
+        variable v_parameter_array
+
+        array set v_project_parameter_array [join $v_parameter_array(project,params)]
+
+        set v_grouped_ip_search_paths $v_project_parameter_array(DEFAULT_IP_SEARCH_PATH)
+
+        if {[info exists v_project_parameter_array(IP_SEARCH_PATH)] == 1} {
+
+            set v_ip_search_paths $v_project_parameter_array(IP_SEARCH_PATH)
+
+            foreach v_ip_search_path ${v_ip_search_paths} {
+
+                # Remove wildcards from search paths (e.g. **/*)
+                set v_result [regexp "\s*(.*?)(?:\*\*)?[\/\\](?:\*)\s*$" ${v_ip_search_path} v_match v_submatch]
+
+                if {${v_result} != 1} {
+                    return -code error "Unable to parse IP_SEARCH_PATH: ${v_ip_search_path}"
+
+                } elseif {[string equal -nocase "absolute" [file pathtype ${v_submatch}]] != 1} {
+                    return -code error "IP Search Path: ${v_ip_search_path}, must be an absolute path"
+
+                } elseif {[file exists ${v_submatch}] != 1} {
+                    return -code error "IP Search Path: ${v_ip_search_path}, does not exist"
+
+                }
+
+                lappend v_grouped_ip_search_paths [string ${v_ip_search_path} trim]
+
+            }
+        }
+
+        set v_concatenated_ip_search_paths [join ${v_grouped_ip_search_paths} ";"]
+
+        set v_parameters [list [list "IP_SEARCH_PATH_CONCAT" ${v_concatenated_ip_search_paths}]]
+        set v_parameter_array(project,params) [list {*}$v_parameter_array(project,params) {*}${v_parameters}]
+
+        set v_device $v_project_parameter_array(DEVICE)
+        set v_speed_grade [get_part_info -speed_grade ${v_device}]
+
+        set v_parameters [list [list "SPEED_GRADE" ${v_speed_grade}]]
+        set v_parameter_array(project,params) [list {*}$v_parameter_array(project,params) {*}${v_parameters}]
+
+        return -code ok
+
+    }
+
+    # Parse board subsystem parameters
+
+    proc ::xml_parse_pkg::parse_board_subsystem {xml_node} {
+
+        variable v_parameter_array
+
+        set v_addon_cards [::xml_parse_pkg::get_addon_card_nodes ${xml_node}]
+
+        foreach v_addon_card ${v_addon_cards} {
+            incr v_parameter_array(project,id)
+            set v_id $v_parameter_array(project,id)
+
+            set v_result [catch {::xml_parse_pkg::parse_addon_card_attributes ${v_addon_card}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            set v_result [catch {::xml_parse_pkg::get_node_parameters ${v_addon_card}} v_parameters]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_parameters}
+            }
+
+            set v_parameter_array(${v_id},params) ${v_parameters}
+        }
+
+        return -code ok
+
+    }
+
+    # Parse user subsystem parameters
+
+    proc ::xml_parse_pkg::parse_user_subsystem {xml_node} {
+
+        variable v_parameter_array
+
+        set v_id $v_parameter_array(project,id)
+
+        set v_attributes [::dom::node cget ${xml_node} -attributes]
+
+        if {[info exists ${v_attributes}(script)]} {
+            set v_script [set ${v_attributes}(script)]
+            set v_result [catch {::xml_parse_pkg::convert_to_absolute_path ${v_script}} v_absolute_script_path]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_absolute_script_path}
+            }
+
+            set v_parameter_array(${v_id},script) ${v_absolute_script_path}
+
+        } else {
+            return -code error "User subsystem $v_parameter_array(${v_id},name) requires a script attribute"
+        }
+
+        return -code ok
+
+    }
+
+    # Get memory-mapped parameter
+
+    proc ::xml_parse_pkg::get_memory_mapped_parameter {xml_node} {
+
+        set v_host_name    ""
+        set v_base_address "X"
+
+        foreach v_child [::dom::node children ${xml_node}] {
+
+            if {[string equal -nocase "element" [::dom::node cget ${v_child} -nodeType]] != 1} {
+                continue
+            }
+
+            set v_result [catch {::xml_parse_pkg::get_node_parameter_pair ${v_child}} v_parameter_pair]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_parameter_pair}
+            } elseif {[llength ${v_parameter_pair}] != 2} {
+                continue
+            }
+
+            switch -nocase [lindex ${v_parameter_pair} 0] {
+                "NAME"   {set v_host_name    [lindex ${v_parameter_pair} 1]}
+                "OFFSET" {set v_base_address [lindex ${v_parameter_pair} 1]}
+                default  {continue}
+            }
+
+        }
+
+        if {[string equal ${v_host_name} ""] == 1} {
+            return -code error "Memory mapped parameter requires a host name"
+        }
+
+        return [list ${v_host_name} ${v_base_address}]
+
+    }
+
+    # Get interrupt parameter
+
+    proc ::xml_parse_pkg::get_interrupt_parameter {xml_node} {
+
+        set v_host_name          ""
+        set v_interrupt_priority "X"
+
+        foreach child [::dom::node children ${xml_node}] {
+
+            if {[string equal -nocase "element" [::dom::node cget ${v_child} -nodeType]] != 1} {
+                continue
+            }
+
+            set v_result [catch {::xml_parse_pkg::get_node_parameter_pair ${v_child}} v_parameter_pair]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_parameter_pair}
+            } elseif {[llength ${v_parameter_pair}] != 2} {
+                continue
+            }
+
+            switch -nocase [lindex ${v_parameter_pair} 0] {
+                "NAME"     {set v_host_name          [lindex ${v_parameter_pair} 1]}
+                "PRIORITY" {set v_interrupt_priority [lindex ${v_parameter_pair} 1]}
+                default    {continue}
+            }
+
+        }
+
+        if {[string equal ${v_host_name} ""] == 1} {
+            return -code error "Interrupt parameter requires a host name"
+        }
+
+        return [list ${v_host_name} ${v_interrupt_priority}]
+
+    }
+
+    ###################################################################################
+    # Misc
+
+    # Convert relative path (to XML) to absolute path
+
+    proc ::xml_parse_pkg::convert_to_absolute_path {path} {
+
+        set v_path_type [file pathtype ${path}]
+
+        if {[string equal -nocase ${v_path_type} "relative"] == 1} {
+            set v_xml_directory [file dirname ${::xml_parse_pkg::v_xml_path}]
+            set v_absolute_path [file join ${v_xml_directory} ${path}]
+            set v_absolute_path [file normalize ${v_absolute_path}]
+
+            set v_tail [file tail ${path}]
+
+            # Special case to preserve a trailing "."
+            if {[string equal ${v_tail} "."] == 1} {
+                set v_absolute_path [file join ${v_absolute_path} "."]
+            }
+
+        } else {
+            set v_absolute_path ${path}
+        }
+
+        if {[file exists ${v_absolute_path}] == 0} {
+            return -code error "XML Parse - path (${v_absolute_path}) does not exist"
+        }
+
+        return ${v_absolute_path}
+
+    }
+
+    # Get a list of xml designs in the default search paths
+
+    proc ::xml_parse_pkg::get_default_xml_designs {toolkit_root script_path} {
+
+        set v_found_xml_files {}
+
+        array set v_valid_xml_files_array {}
+        set       v_valid_xml_files_list  {}
+
+        foreach v_relative_search_path ${::xml_parse_pkg::v_design_search_paths} {
+            set v_absolute_search_path [file normalize [file join ${toolkit_root} ${v_relative_search_path}]]
+            set v_temporary_xml_files  [fileutil::findByPattern ${v_absolute_search_path} -glob -- "*.xml"]
+            set v_found_xml_files      [list {*}${v_found_xml_files} {*}${v_temporary_xml_files}]
+        }
+
+        # Perform basic parsing of .xml files to ensure they are in the toolkit format
+        foreach v_found_xml_file ${v_found_xml_files} {
+
+            set v_result [catch {open ${v_found_xml_file} r} v_file_id]
+            if {${v_result} != 0} {
+                return -code error "Unable to open XML file (${v_found_xml_file}): ${v_file_id}"
+            }
+
+            set v_xml_data [read ${v_file_id}]
+            close ${v_file_id}
+
+            set v_dom_data                   [::dom::parse ${v_xml_data}]
+            set v_temporary_document_element [::dom::document cget ${v_dom_data} -documentElement]
+
+            set v_name [::dom::node cget ${v_temporary_document_element} -nodeName]
+
+            if {[string equal "PROJECT" ${v_name}] == 1} {
+
+                set v_filename      [file tail ${v_found_xml_file}]
+                set v_path          [file dirname ${v_found_xml_file}]
+
+                # Search path is relative to toolkit root, rebase to script path
+                set v_relative_path [::fileutil::relative ${script_path} ${v_path}]
+
+                if {[info exists v_valid_xml_files_array(${v_filename})] == 1} {
+                    lappend v_valid_xml_files_array(${v_filename}) ${v_relative_path}
+                } else {
+                    set v_valid_xml_files_array(${v_filename}) [list ${v_relative_path}]
+                }
+
+            }
+
+        }
+
+        set v_valid_xml_files_list [array get v_valid_xml_files_array]
+        set v_valid_xml_files_list [lsort -stride 2 -dictionary ${v_valid_xml_files_list}]
+
+        return ${v_valid_xml_files_list}
+
+    }
+
+    # Print the parameter array to the terminal
+
+    proc ::xml_parse_pkg::print_parameter_array {} {
+
+        variable v_parameter_array
+
+        puts "\n============================================="
+
+        if {[info exists v_parameter_array(project,name)]} {
+            puts "Project name: $v_parameter_array(project,name)"
+        }
+
+        if {[info exists v_parameter_array(project,params)]} {
+            foreach v_parameter_pair $v_parameter_array(project,params) {
+                set v_name  [lindex ${v_parameter_pair} 0]
+                set v_value [lindex ${v_parameter_pair} 1]
+                puts "\tParameter: ${v_name} : ${v_value}"
+            }
+        }
+
+        puts "---------------------------------------------"
+
+        for {set v_id 0} {${v_id} < $v_parameter_array(project,id)} {incr v_id} {
+
+            if {[info exists v_parameter_array(${v_id},class)]} {
+                set v_class $v_parameter_array(${v_id},class)
+            } else {
+                set v_class "UNKNOWN"
+            }
+
+            if {[info exists v_parameter_array(${v_id},name)]} {
+                puts "${v_class} name: $v_parameter_array(${v_id},name)"
+            }
+
+            if {[info exists v_parameter_array(${v_id},type)]} {
+                puts "${v_class} type: $v_parameter_array(${v_id},type)"
+            }
+
+            if {[info exists v_parameter_array(${v_id},script)]} {
+                puts "${v_class} script: $v_parameter_array(${v_id},script)"
+            }
+
+            if {[info exists v_parameter_array(${v_id},params)]} {
+                foreach v_parameter_pair $v_parameter_array(${v_id},params) {
+                    set v_name  [lindex ${v_parameter_pair} 0]
+                    set v_value [lindex ${v_parameter_pair} 1]
+                    puts "\tParameter: ${v_name} - ${v_value}"
+                }
+            }
+
+            if {${v_id} < [expr $v_parameter_array(project,id)-1]} {
+                puts "---------------------------------------------"
+            }
+
+        }
+
+        puts "=============================================\n"
+
+        return -code ok
+
+    }
 
 }

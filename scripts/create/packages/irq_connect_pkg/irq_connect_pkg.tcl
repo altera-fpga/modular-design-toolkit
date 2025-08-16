@@ -1,292 +1,225 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
 package provide irq_connect_pkg 1.0
+
 package require Tcl             8.0
+
+# Helper to connect interrupt interfaces
 
 namespace eval irq_connect_pkg {
 
-  namespace export run_connections
+    namespace export run_connections
 
-  variable pkg_dir [file join [pwd] [file dirname [info script]]]
+    variable pkg_dir [file join [pwd] [file dirname [info script]]]
 
-  variable enable_debug_messages 1
+    variable v_irq_array
+    array set v_irq_array {}
 
-  # array of irq connection requests from the project .xml file (see parse_irq_list)
-  variable irq_array 
-  array set irq_array {}
+    proc ::irq_connect_pkg::run_connections {system irq_list} {
 
-  proc ::irq_connect_pkg::run_connections {top_qsys_file irq_list} {
-      
-    parse_irq_list $irq_list
-    connect_irqs
+        set v_result [catch {::irq_connect_pkg::parse_irq_list ${irq_list}} result_text]
+        if {${v_result} != 0} {
+            puts "${result_text}"
+            return -code ${v_result} ${result_text}
+        }
 
-  }
+        set v_result [catch {::irq_connect_pkg::connect_irqs ${system}} result_text]
+        if {${v_result} != 0} {
+            puts "${result_text}"
+            return -code ${v_result} ${result_text}
+        }
 
-  # convert a list of IRQ interfaces, priorities and labels into an array to simplify
-  # the connection process. Also performs error checking
-  proc parse_irq_list {irq_list} {
+        return -code ok
 
-    variable irq_array
+    }
 
-    set irq_array(labels) {}
+    # Convert a list of IRQ interfaces, priorities and labels into an array
 
-    foreach irq $irq_list {
+    proc ::irq_connect_pkg::parse_irq_list {irq_list} {
 
-      set instance      [lindex $irq 0]
-      set interface     [lindex $irq 1]
-      set priority      [lindex $irq 2]
-      set label         [lindex $irq 3]
+        variable v_irq_array
 
-      print_message "parsing irq list entry - instance: $instance, interface: $interface, priority: $priority, label: $label"
-      
-      # check if the label entry exists
-      if {[lsearch $irq_array(labels) $label] == -1} {
+        set v_irq_array(labels) {}
 
-        print_message "adding label ($label) to the irq array"
+        foreach v_irq ${irq_list} {
 
-        # add new label to the array, and initialize array elements
-        lappend irq_array(labels) $label
-        set irq_array($label,receiver) ""
-        set irq_array($label,priorities) {}
-        set irq_array($label,$priority)  {}      
+            set v_instance  [lindex ${v_irq} 0]
+            set v_interface [lindex ${v_irq} 1]
+            set v_priority  [lindex ${v_irq} 2]
+            set v_label     [lindex ${v_irq} 3]
 
-      }
+            set v_label_exists [lsearch $v_irq_array(labels) ${v_label}]
 
-      # check that the instance and interface exists
-      if {[catch {get_instance_interface_property $instance $interface CLASS_NAME} result_text]} {
-        
-        print_message "irq list entry is invalid - intance: ${instance} or interface ${instance}.${interface} doesn't exist"
-        print_message $result_text
-        return
+            if {${v_label_exists} < 0} {
+                lappend v_irq_array(labels)                   ${v_label}
+                set     v_irq_array(${v_label},receiver)      ""
+                set     v_irq_array(${v_label},priorities)    {}
+                set     v_irq_array(${v_label},${v_priority}) {}
+            }
 
-      } else {
+            set v_result [catch {get_instance_interface_property ${v_instance} ${v_interface} CLASS_NAME} result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} "unable to retrieve class_name property from ${v_instance}.${v_interface}"
+            }
 
-        if {$result_text == "interrupt_receiver"} {
+            if {[string equal ${result_text} "interrupt_receiver"] == 1} {
+                if {$v_irq_array(${v_label},receiver) == ""} {
+                    set v_irq_array(${v_label},receiver)  ${v_instance}.${v_interface}
+                } else {
+                    return -code error "cannot have multiple irq receivers with the same label (${v_label}:\
+                                        $v_irq_array(${v_label},receiver), ${v_instance}.${v_interface})"
+                }
 
-          if {$irq_array($label,receiver) == ""} {
-            print_message "adding receiver ($instance) for $label"
-            set irq_array($label,file)  [get_instance_property $instance FILE]
-            set irq_array($label,receiver) ${instance}.${interface}
-            set irq_array($label,interface) ${interface}
-          } else {
-            print_message "there is already a receiver for label $label"
-            return
-          }
+            } elseif {[string equal ${result_text} "interrupt_sender"] == 1} {
+                set v_priority_exists [lsearch $v_irq_array(${v_label},priorities) ${v_priority}]
 
-        } elseif {$result_text == "interrupt_sender"} {
+                if {${v_priority_exists} < 0} {
+                    lappend v_irq_array(${v_label},priorities) ${v_priority}
+                    lappend v_irq_array(${v_label},${v_priority}) ${v_instance}.${v_interface}
+                } else {
+                    return -code error "cannot have multiple irq senders with the same label and priority\
+                                        (${v_priority}: $v_irq_array(${v_label},${v_priority}),\
+                                        ${v_instance}.${v_interface})"
+                }
 
-          if {[lsearch $irq_array($label,priorities) $priority] >= 0} {
-            print_message "duplicate priority found for $instance $interface"
-            return
-          } else {
-            print_message "adding sender ($instance) for $label"
-            lappend irq_array($label,priorities) $priority
-            lappend irq_array($label,$priority) ${instance}.${interface}
-          }
+            } else {
+                return -code error "class_name property of ${v_instance}.${v_interface} not of interrupt type"
+            }
+        }
+
+        foreach v_label $v_irq_array(labels) {
+            set v_ordered_priorities [lsort -dictionary $v_irq_array(${v_label},priorities)]
+            set v_irq_array(${v_label},priorities) ${v_ordered_priorities}
+        }
+
+        return -code ok
+
+    }
+
+    # Connect the IRQs at the platform designer top level
+    # Note: assumes irq bridge in receiver subsystem that converts relative to absolute priorities
+
+    proc ::irq_connect_pkg::connect_irqs {system} {
+
+        variable v_irq_array
+
+        load_system ${system}
+
+        foreach v_label $v_irq_array(labels) {
+            set v_receiver          $v_irq_array(${v_label},receiver)
+            set v_relative_priority 0
+
+            foreach v_absolute_priority $v_irq_array(${v_label},priorities) {
+                set v_sender $v_irq_array(${v_label},${v_absolute_priority})
+                ::irq_connect_pkg::create_connection ${v_receiver} ${v_sender} ${v_relative_priority}
+                incr v_relative_priority
+            }
+        }
+
+        save_system
+
+    }
+
+    # Check for duplicate priorities in a list
+
+    proc ::irq_connect_pkg::check_duplicate_priorities {priorities} {
+
+        set v_ordered_priorities [lsort -dictionary ${priorities}]
+        set v_previous_priority  ""
+
+        foreach v_priority ${v_ordered_priorities} {
+            set v_dont_care [string equal -nocase ${v_priority} "x"]
+
+            if {(${v_priority} == ${v_previous_priority}) && (${v_dont_care} != 1)} {
+                return -code error "duplicate priorities found (${v_priority})"
+            }
+
+            set v_previous_priority ${v_priority}
 
         }
 
-      }
+        return -code ok 0
 
     }
 
-    # sort the priorities in ascending order
-    foreach label $irq_array(labels) {
-      set ordered_priority [lsort -dictionary $irq_array(${label},priorities)]
-      set irq_array(${label},priorities) $ordered_priority
+    # Connect the IRQ sender to the receiver with the given priority
+
+    proc ::irq_connect_pkg::create_connection {receiver sender priority} {
+        add_connection                  ${receiver} ${sender}
+        set_connection_parameter_value  "${receiver}/${sender}" irqNumber ${priority}
     }
 
-    return
+    # Get a sorted list of IRQ priorities. For use by subsystems with an exported irq receiver
 
-  }
+    proc ::irq_connect_pkg::get_external_irqs {param_array instance_name internal_priorities} {
 
-  # Connect the IRQs at the platform designer top level based on the array built from parse_irq_list
-  # It is assumed that the connections are made via an IRQ bridge in the subsystem and so the 
-  # priority order is kept, but the absolute values are not. This allows the subsystem containing the IRQ
-  # bridge to resize it as appropriate.
-  proc connect_irqs {} {
+        upvar ${param_array} p_array
 
-    variable irq_array
+        set v_external_priorities {}
 
-    print_message "connecting irqs for the irq labels ($irq_array(labels))"
+        for {set v_subsystem_id 0} {${v_subsystem_id} < $p_array(project,id)} {incr v_subsystem_id} {
 
-    set system [get_module_property FILE]
+            set v_subsystem_parameters $p_array(${v_subsystem_id},params)
 
-    # load top level of the project
-    load_system $system
+            array set v_subsystem_irq_array  {}
+            set v_subsystem_irq_array(names) {}
 
-    foreach label $irq_array(labels) {
+            foreach v_subsystem_parameter ${v_subsystem_parameters} {
+                set v_name  [lindex ${v_subsystem_parameter} 0]
+                set v_value [lindex ${v_subsystem_parameter} 1]
 
-      set receiver $irq_array($label,receiver)
-      set external_priority 0
+                set v_result [regexp {^(.*)IRQ_(HOST|PRIORITY)$} ${v_name} full_match sub_match_0 sub_match_1]
 
-      print_message "connecting irqs for the irq receiver ($receiver) with priorities ($irq_array($label,priorities))"
+                if {${v_result} == 1} {
+                    set v_irq_name ${sub_match_0}
 
-      foreach priority $irq_array($label,priorities) {
-        set sender $irq_array($label,$priority)
-        create_connection ${receiver} ${sender} ${external_priority}
-        incr external_priority
-      }
+                    if {[string equal ${sub_match_1} "HOST"] == 1} {
 
-    }
+                        if {[string equal ${instance_name} ${v_value}] == 1} {
+                            lappend v_subsystem_irq_array(names) ${v_irq_name}
 
-    save_system 
+                            # if a priority doesn't exist default to don't care
+                            if {[info exists v_subsystem_irq_array(${v_irq_name},priority)] == 0} {
+                                set v_subsystem_irq_array(${v_irq_name},priority) "X"
+                            }
+                        }
+                    }
 
-  }
+                    if {[string equal ${sub_match_1} "PRIORITY"] == 1} {
+                        set v_subsystem_irq_array(${v_irq_name},priority) ${v_value}
+                    }
+                }
+            }
 
-  # return 1 if there are duplicate priority values, return 0 otherwise
-  proc check_duplicate_priorities {priorities} {
-
-    set ordered_priorities [lsort -dictionary $priorities]
-
-    set previous_priority ""
-
-    foreach priority $ordered_priorities {
-
-      if {($priority == $previous_priority) && ($priority != "X")} {
-        print_message "detected duplicate priority"
-        return 1
-      }
-
-      set previous_priority $priority
-
-    }
-
-    return 0
-
-  }
-
-  # Connect the IRQ sender to the receiver with the provided priority
-  proc create_connection {receiver sender priority} {
-
-    print_message "connecting sender: ${sender} to receiver: ${receiver} with $priority"
-
-    add_connection                  ${receiver} ${sender}
-    set_connection_parameter_value  ${receiver}/${sender} irqNumber $priority
-
-  }
-
-  #=================================================================
-  # Other procedures
-  
-  # Produces a sorted list of external IRQ priorities. For use by subsystems 
-  # with an exported irq receiver that uses an IRQ bridge.
-  proc get_external_irqs {param_array instance_name internal_priorities} {
-
-    upvar $param_array p_array
-
-    set v_instance_name $instance_name
-
-    set external_priorities {}
-
-    print_message "getting external irqs for subsystem $v_instance_name"
-
-    # search for subsystem parameters that contain the key words
-    # - <name>_IRQ_HOST     - the subsystem name containing the IRQ receiver to connect to
-    # - <name>_IRQ_PRIORITY - the priority of the IRQ
-
-    for {set id 0} {$id < $p_array(project,id)} {incr id} {
-        
-      set params $p_array($id,params) 
-      
-      array set irqs {}
-      set irqs(names) {}
-
-      foreach param $params {
-
-        set name [lindex $param 0]
-        set value [lindex $param 1]
-
-        print_message "checking parameter ($param) in subsystem ($p_array($id,name)) for IRQ property"
-        
-        set result [regexp {^(.*)IRQ_HOST$} $name full_match sub_match]
-
-        # the IRQ host parameter value must apply to the current instance
-        if {($result) && ($value == $v_instance_name)} {
-
-          print_message "found matching IRQ ($sub_match) in subsystem ($p_array($id,name))"
-          
-          set irq_name "${id}_${sub_match}"
-          lappend irqs(names) $irq_name
-          
-          # if a priority doesn't exist for the IRQ default to don't care
-          if {[info exists irqs(${irq_name},priority)] == 0} {
-            set irqs(${irq_name},priority) "X"
-          }
-
+            foreach v_irq_name $v_subsystem_irq_array(names) {
+                set v_priority $v_subsystem_irq_array(${v_irq_name},priority)
+                lappend v_external_priorities ${v_priority}
+            }
         }
 
-        set result [regexp {^(.*)IRQ_PRIORITY$} $name full_match sub_match]
+        set v_total_priorities [concat ${v_external_priorities} ${internal_priorities}]
 
-        # we cannot know if this irq priority applies to the current instance
-        # so save it for future reference
-        if {$result} {
-          set irq_name "${id}_${sub_match}"
-          print_message "found an IRQ priority ($sub_match = $value) in subsystem ($p_array($id,name)) speculatively saving"
-          set irqs(${irq_name},priority) $value
+        set v_result [catch {::irq_connect_pkg::check_duplicate_priorities ${v_total_priorities}} result_text]
+        if {${v_result} != 0} {
+            puts "duplicate irq priorities found ${result_text}"
+            return -code ${v_result} ${result_text}
         }
 
-      }
+        set v_sorted_priorities [lsort -dictionary ${v_external_priorities}]
 
-      # add the locally found irq priorites to the global list.
-      # Note: only those irq priorities with the correct host are added
-      foreach irq_name $irqs(names) {
-
-        set priority $irqs($irq_name,priority)
-        set index [lsearch $external_priorities $priority]
-
-        # check for duplicate priorites
-        if {($index == -1) || ($priority == "X")} {
-          print_message "adding an IRQ priority ($priority) in subsystem ($p_array($id,name)) to the list"
-          lappend external_priorities $priority
-        } else {
-          print_message "multiple irqs with priority ($priority), in subsystem ($p_array($id,name)), priorities must be unique per host"
-          return
-        }
-
-      }
+        return ${v_sorted_priorities}
 
     }
-
-    # check no conflict between the subsystem's internal IRQ priorities and the external priorities
-    foreach priority $internal_priorities {
-      set index [lsearch $external_priorities $priority]
-      if {($index >= 0) && ($priority != "X")} {
-        print_message "multiple irqs with priority ($priority), in subsystem "
-        return
-      } 
-    }
-
-    set external_priorities [lsort -dictionary $external_priorities]
-
-    print_message "found external priorities $external_priorities"
-
-    return $external_priorities
-
-  }
-
-  #=================================================================
-  # Misc procedures
-
-  proc print_message {msg} {
-
-    variable enable_debug_messages
-
-    if {$enable_debug_messages} {
-      puts "IRQ connect pkg: $msg"
-    }
-
-  }
 
 }

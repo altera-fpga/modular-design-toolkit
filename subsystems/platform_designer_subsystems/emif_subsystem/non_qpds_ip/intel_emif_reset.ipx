@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_emif_reset_block/intel_emif_reset_block_hw.tcl" />
+
+</library>

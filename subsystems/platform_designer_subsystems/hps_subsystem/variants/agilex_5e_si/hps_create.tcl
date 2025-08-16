@@ -137,7 +137,7 @@ proc derive_parameters {param_array} {
     }
 
     set_shell_parameter DRV_IRQ_BRIDGE_WIDTH      [llength ${v_external_priorities}]
-    set_shell_parameter DRV_IRQ_BRIDGE_PRIORITIES $v_external_priorities
+    set_shell_parameter DRV_IRQ_BRIDGE_PRIORITIES ${v_external_priorities}
 }
 
 proc pre_creation_step {} {
@@ -390,11 +390,11 @@ proc create_cpu_subsystem {} {
     set_instance_parameter_value agilex_hps H2F_IRQ_Watchdog_Enable    {0}
     set_instance_parameter_value agilex_hps H2F_Width                  {128}
     if {${v_board_name} == "AGX_5E_Si_Devkit"} {
-        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I3C1:SDA I3C1:SCL HCLK:HPS_OSC_CLK GPIO0:IO11 USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 SDMMC:WPROT SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
+        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I3C1:SDA I3C1:SCL HCLK:HPS_OSC_CLK GPIO0:IO11 USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
     } elseif {${v_board_name} == "AGX_5E_Modular_Devkit"} {
-        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I2C_EMAC1:SDA I2C_EMAC1:SCL GPIO0:IO10 HCLK:HPS_OSC_CLK USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 SDMMC:WPROT SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
+        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I2C_EMAC1:SDA I2C_EMAC1:SCL GPIO0:IO10 HCLK:HPS_OSC_CLK USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
     } else {
-        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I3C1:SDA I3C1:SCL HCLK:HPS_OSC_CLK GPIO0:IO11 USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 SDMMC:WPROT SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
+        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I3C1:SDA I3C1:SCL HCLK:HPS_OSC_CLK GPIO0:IO11 USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
     }
     if {${v_i2c0_ext_en}} {
         set_instance_parameter_value agilex_hps I2C0_Mode                 {default}
@@ -1500,7 +1500,6 @@ proc edit_top_v_file {} {
 
     add_top_port_list output   ""         hps_sdmmc_cclk
     add_top_port_list inout    ""         hps_sdmmc_cmd
-    add_top_port_list input    ""         hps_sdmmc_wprot
     add_top_port_list inout    ""         hps_sdmmc_data0
     add_top_port_list inout    ""         hps_sdmmc_data1
     add_top_port_list inout    ""         hps_sdmmc_data2
@@ -1553,6 +1552,7 @@ proc edit_top_v_file {} {
     add_top_port_list inout    ""         hps_gpio0_io1
     add_top_port_list inout    ""         hps_gpio0_io11
     add_top_port_list inout    ""         hps_gpio1_io3
+    add_top_port_list inout    ""         hps_gpio1_io4
 
     # USB 3.1
     add_top_port_list input    ""         usb31_io_vbus_det
@@ -1600,7 +1600,6 @@ proc edit_top_v_file {} {
 
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_sdmmc_cclk"      hps_sdmmc_cclk
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_sdmmc_cmd"       hps_sdmmc_cmd
-    add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_sdmmc_wprot"     hps_sdmmc_wprot
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_sdmmc_data0"     hps_sdmmc_data0
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_sdmmc_data1"     hps_sdmmc_data1
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_sdmmc_data2"     hps_sdmmc_data2
@@ -1662,6 +1661,7 @@ proc edit_top_v_file {} {
         add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio11"          hps_gpio0_io11
     }
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio27"          hps_gpio1_io3
+    add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio28"          hps_gpio1_io4
 
     # USB 3.1
     add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_vbus_det"      usb31_io_vbus_det

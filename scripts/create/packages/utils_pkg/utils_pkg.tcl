@@ -1,234 +1,177 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-package provide utils_pkg  1.0
-package require Tcl             8.0
+package provide utils_pkg 1.0
 
-set script_dir [file dirname [info script]]
-lappend auto_path "$script_dir/../"
+package require Tcl       8.0
 
-namespace eval ::utils_pkg {
+set script_dir    [file dirname [info script]]
+lappend auto_path [file join ${script_dir} ".."]
 
-  # Export functions
-  namespace export file_copy
+# Miscellaneous helper functions
 
-  variable pkg_dir [file join [pwd] [file dirname [info script]]]
+namespace eval utils_pkg {
 
-}
+    namespace export file_copy
 
-# note : qsys-script only supports the -nocomplain flag for glob so will only work
-#        in the current dirrectory, hence the procedure traverses the input directory
-#        structure via the cd command. 
+    variable pkg_dir [file join [pwd] [file dirname [info script]]]
 
-proc ::utils_pkg::file_copy {src dst {level 0}} {
+    # Recursive file copy
 
-  #puts "Debug : file_copy $src -> $dst"
+    proc ::utils_pkg::file_copy {source destination {level 0}} {
 
-  set saved_pwd [pwd]
+        # Note : qsys-script only supports the -nocomplain flag for glob so will only work
+        #        in the current directory, hence the procedure traverses the input directory
+        #        structure via the cd command.
 
-  # always check that the folder/file is not a symbolic link
-  set file_type [file type $src]
+        set v_saved_directory [pwd]
 
-  if {($file_type != "directory") && ($file_type != "file")} {
-    return -code error "file_copy - source folder / file is a symlink ($src)"
-  }
+        set v_type [file type ${source}]
 
-  # perform the following checks on first call
-  if {($level == 0)} {
+        if {(${v_type} != "directory") && (${v_type} != "file")} {
+            return -code error "file_copy - source folder / file is a symlink (${source})"
+        }
 
-    if {![file exists $src]} {
-      return -code error "file_copy - source folder / file does not exist ($src)"
-    }
+        if {(${level} == 0)} {
+            if {[file exists ${source}] == 0} {
+                return -code error "file_copy - source folder / file does not exist (${source})"
+            }
 
-    # check for copy : file -> file, file -> dir, dir -> dir
-    if {[file isdirectory $src]} {
+            # Check for copy type: file -> file, file -> dir, dir -> dir
+            if {[file isdirectory ${source}] == 1} {
+                if {[::utils_pkg::string_isfile ${destination}] == 1} {
+                    return -code error "file_copy - cannot copy a directory to a file (${source} -> ${destination})"
+                } else {
+                    # Replicate Linux 'cp' behavior
+                    # <path>/<dir>/. copies only the contents of <dir>, not <dir> itself
+                    # <path>/<dir>/  copies <dir> and its contents
 
-      if {[string_isfile $dst]} {
-        return -code error "file_copy - cannot copy a directory to a file ($src -> $dst)"
-      } else {
-    
-        # replicate linux cp command  
-        # <path>/<dir>/. copies only the contents of <dir>, not <dir> itself
-        # <path>/<dir>/  copies <dir> and its contents
+                    if {[string match */. ${source}] == 0} {
+                        set v_tail      [file tail ${source}]
+                        set destination [file join ${destination} ${v_tail}]
+                    } else {
+                        set source [string trimright ${source} "."]
+                    }
+                }
+            } else {
+                if {[::utils_pkg::string_isfile ${destination}] == 0} {
 
-        if {![string match */. $src]} {
-          set tmp [file tail $src]
-          set dst [file join $dst $tmp]
+                    if {[file exists ${destination}] == 0} {
+                        file mkdir ${destination}
+                    }
+
+                    # file -> dir : need to append filename to destination
+                    set v_tail [file tail ${source}]
+                    set destination [file join ${destination} ${v_tail}]
+                }
+            }
+        }
+
+        if {[file isdirectory ${source}] == 1} {
+
+            if {[file exists ${destination}] == 0} {
+                file mkdir ${destination}
+            }
+
+            cd ${source}
+
+            set v_objects [glob -nocomplain *]
+
+            foreach v_object ${v_objects} {
+                set v_source_object      [file join ${source} ${v_object}]
+                set v_destination_object [file join ${destination} ${v_object}]
+                set v_level              [expr ${level} + 1]
+
+                ::utils_pkg::file_copy ${v_source_object} ${v_destination_object} ${v_level}
+            }
+
         } else {
-          # remove trailing '.' (for neatness)
-          set src [string trimright $src "."]
+
+            if {[file exists ${destination}] == 0} {
+                file copy -force ${source} ${destination}
+            }
+
         }
 
-      }
+        cd ${v_saved_directory}
 
-    } else {
+        return -code ok
 
-      if {![string_isfile $dst]} {
+    }
 
-        if {![file exists $dst]} {
-          file mkdir $dst
+    # Check string is a file (isfile / isdirectory does not work on non-existent objects)
+
+    proc ::utils_pkg::string_isfile {input} {
+
+        if {[info exists ::tcl_platform(host_platform)] == 1} {
+            set v_platform ${::tcl_platform(host_platform)}
+        } elseif {[info exists ::tcl_platform(os)] == 1} {
+            set v_platform ${::tcl_platform(os)}
+        } else {
+            return -code error "file_copy : unknown file separator"
         }
 
-        # file -> dir : need to append filename to desination
-        set tmp [file tail $src]
-        set dst [file join $dst $tmp]
+        if {[string match -nocase "*unix*" ${v_platform}] == 1} {
+            set v_separator "/"
+        } elseif {[string match -nocase "*linux*" ${v_platform}] == 1} {
+            set v_separator "/"
+        } elseif {[string match -nocase "*windows*" ${v_platform}] == 1} {
+            set v_separator "\\"
+        } else {
+            return -code error "file_copy : unknown file separator"
+        }
 
-      }
+        if {[string match "*${v_separator}" ${input}]} {
+            return -code ok 0
+        } else {
+            set v_input_tail      [file tail ${input}]
+            set v_input_split     [split ${v_input_tail} "."]
+            set v_input_split_len [llength ${v_input_split}]
 
-    }
+            if {${v_input_split_len} == 1} {
+                return -code ok 0
+            } else {
+                set v_input_end     [lindex ${v_input_split} end-1]
+                set v_input_end_len [llength ${v_input_end}]
 
-  }
+                if {${v_input_end_len} > 0} {
+                    return -code ok 1
+                } else {
+                    return -code error "filename error - file cannot end with a '.'"
+                }
+            }
+        }
 
-  #-----------------------------------
-
-  # if src is a directory
-  if {[file isdirectory $src]} {
-
-    if {![file exists $dst]} {
-      file mkdir $dst
-    }
-
-    # get all objects in the directory (sub-directories & files)
-    
-    cd $src
-
-    set objects [glob -nocomplain *]
-
-    foreach object $objects {
-    
-      # convert to full paths
-      set src_object [file join $src $object]
-      set dst_object [file join $dst $object]
-    
-      # call file_copy (recursively)
-      set level [expr $level + 1]
-      file_copy $src_object $dst_object $level
+        return -code error "function error"
 
     }
 
-  } else {
+    # Recursive mkdir (equivalent to 'mkdir -p <source>')
 
-    puts "Debug : copying file : $src -> $dst"
-    file copy -force $src $dst
+    proc ::utils_pkg::recursive_mkdir {source} {
 
-  }
+        set v_source_split [file split ${source}]
 
-  cd $saved_pwd
+        foreach v_subdirectory ${v_source_split} {
+            set v_directory [file join ${v_directory} ${v_subdirectory}]
 
-  return
+            if {[file exists ${v_directory}] == 0} {
+                file mkdir ${v_directory}
+            }
+        }
 
-}
-
-# Check that the string is a file, used to check the destination of a folder/file copy.
-# The standard isfile / isdirectory does not work on non-existent objects
-
-proc ::utils_pkg::string_isfile {input} {
-
-  # get the file system path separator
-
-  if {[info exists ::tcl_platform(host_platform)]} {
-    set platform $::tcl_platform(host_platform)
-  } elseif {[info exists ::tcl_platform(os)]} {
-    set platform $::tcl_platform(os)
-  } else {
-    return -code error "file_copy : unknown file separator"
-  }
-
-  if {[string match -nocase "*unix*" $platform]} {
-    set sep "/"
-  } elseif {[string match -nocase "*linux*" $platform]} {
-    set sep "/"
-  } elseif {[string match -nocase "*windows*" $platform]} {
-    set sep "\\"
-  } else {
-    return -code error "file_copy : unknown file separator"
-  }
-
-  if {[string match "*${sep}" $input]} {
-
-    # string ends in a separator so it is a directory
-    return -code ok 0
-
-  } else {
-
-    # the string could be a file
-    set input_tail      [file tail $input]
-
-    set input_split     [split $input_tail "."]
-    set input_split_len [llength $input_split]
-
-    if {$input_split_len == 1} {
-      # there is no "." so is a directory
-      return -code ok 0
-    } else {
-    
-      set input_end     [lindex $input_split end-1]
-      set input_end_len [llength $input_end]
-
-      if {$input_end_len > 0} {
-        # the file format is correct
-        return -code ok 1
-      } else {
-        # there is an error in the filename
-        return -code error "filename error - file cannot end with a '.'"
-      }
+        return -code ok
 
     }
-
-  }
-
-  # there is an error in the function
-  return -code error "function error"
-
-}
-
-# 
-#
-
-proc ::utils_pkg::recursive_mkdir {src} {
-
-  set src_split [file split $src]
-  set dir ""
-
-  foreach part $src_split {
-    set dir [file join $dir $part]
-    #puts "Debug : recursive directory : $dir"
-    if {![file exists $dir]} {
-      puts "Debug : recursive directory : $dir"
-      file mkdir $dir
-      #set atts [file attributes $v_proj_path/$root/$sub -permissions]
-      #puts "Debug : $atts"
-    }
-  }
-
-}
-
-#======================================================================================
-#
-
-#
-
-proc ::utils_pkg::debug_message {global_debug_level subsystem_name debug_level message } {
-
-  # debug levels
-  #
-  # 3 - all
-  # 2 - external + internal procedure calls  
-  # 1 - external procedure calls
-  # 0 - off
-
-  if {$global_debug_level >= $debug_level} {
-    puts "$subsystem_name : $message"
-  }
 
 }

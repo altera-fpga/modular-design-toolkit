@@ -89,6 +89,7 @@ namespace eval build_shell {
         set v_hps_post          0
         set v_hps_post_agx      0
         set v_hps_post_agx5e    0
+        set v_ff_post_agx5e     0
 
         # misc flags
         set v_archive_project 0
@@ -109,6 +110,7 @@ namespace eval build_shell {
                                              .jic based on default hps_debug.ihex and u-boot-spl-dtb.hex respectively"}
             { "hps_post_agx5e"        "0"   "Warning: experimental feature - Convert the output SOF into core.rbf and\
                                              .jic based on default u-boot-spl-dtb.hex"}
+            { "ff_post_agx5e"         "0"   "Warning: experimental feature - Attaching FSBL to output SOF"}
             { "update_sof"            "0"   "Compile the Nios2/NiosV software, and update the SOF file"}
             { "archive"               "0"   "Create an archive (.qar) of the project, following any compile options"}
             { "archive_fileset.arg"   ""    "Text file containing a list of paths to files to include in the archive,\
@@ -151,8 +153,9 @@ namespace eval build_shell {
                                                 Split the SOF into core.rbf and .jic from provided"
             puts stderr "                       hps_debug.ihex and u-boot-spl-dtb.hex files\n"
             puts stderr "     -hps_post_agx5e   (Optional) Warning: experimental feature - HPS post-processing.\
-                                                Split the SOF into core.rbf and .jic from provided"
-            puts stderr "                       u-boot-spl-dtb.hex\n"
+                                                Split the SOF into core.rbf and .jic from provided\n"
+            puts stderr "     -ff_post_agx5e    (Optional) Warning: experimental feature - SOF post-processing.\
+                                                Attaching FSBL to output SOF\n"
             puts stderr "     -update_sof       (Optional) update the SOF without a hardware compile. Executes\
                                                 -sw_compile beforehand\n"
             puts stderr "     -archive          (Optional) create a Quartus archive (.qar) using the default\
@@ -204,6 +207,9 @@ namespace eval build_shell {
         if {$v_opts_hash(hps_post_agx5e)} {
             set v_hps_post_agx5e 1
         }
+        if {$v_opts_hash(ff_post_agx5e)} {
+            set v_ff_post_agx5e 1
+        }
         if {$v_opts_hash(silent_mode)} {
             set v_silent_mode 1
         }
@@ -230,7 +236,7 @@ namespace eval build_shell {
         if {(${v_project_clean} == 0) && (${v_pd_generate} == 0) && (${v_sw_compile} == 0) &&
             (${v_hw_compile} == 0) && (${v_update_capability} == 0) && (${v_update_sof} == 0) &&
             (${v_hps_post} == 0) && (${v_hps_post_agx} == 0) && (${v_hps_post_agx5e} == 0) &&
-            (${v_archive_project} == 0)} {
+            (${v_ff_post_agx5e} == 0) &&(${v_archive_project} == 0)} {
 
             set v_pd_generate   1
             set v_sw_compile    1
@@ -338,6 +344,10 @@ namespace eval build_shell {
             set v_result [catch {::build_shell::hps_post_agx5e_process} result_text result_options]
         }
 
+        if { (${v_ff_post_agx5e} == 1) && (${v_result} == 0) } {
+            set v_result [catch {::build_shell::ff_post_agx5e_process} result_text result_options]
+        }
+
         if { (${v_archive_project} == 1) && (${v_result} == 0) } {
             set v_result [catch {::build_shell::archive_project ${v_archive_fileset}} result_text result_options]
         }
@@ -371,7 +381,6 @@ namespace eval build_shell {
 
         set v_proj_ip_search_paths  [get_global_assignment -name IP_SEARCH_PATHS]
         set v_pd_ip_search_paths    [string map {; ,} ${v_proj_ip_search_paths}]
-        append v_pd_ip_search_paths "\$"
 
         # Create arguments (to run the update capability structure script)
 
@@ -385,11 +394,14 @@ namespace eval build_shell {
         set v_args [list --system-file=${v_pd_project} --cmd=${v_pd_cmd} --search_path=${v_pd_ip_search_paths}\
                          --quartus-project=${v_q_project}]
 
-        cd [file join ${v_proj_base_dir} "scripts"]
+        set v_pwd [pwd]
+        cd [file join ${v_proj_base_dir} "quartus"]
 
         set v_result [catch {::build_shell::run_quartus_executable "Capability Structure Update"\
                              qsys-script ${v_args}} result_text result_options]
         ::logging_pkg::gen_log ${result_text}
+
+        cd ${v_pwd}
 
         if {${v_result}!=0} {
             return -code ${v_result} ${result_text}
@@ -733,6 +745,43 @@ namespace eval build_shell {
                          -o flash_loader=A5ED065BB32AE6SR0 -o mode=ASX4 -o hps=1]
 
         set v_result [catch {::build_shell::run_quartus_executable "Create RBF and JIC (for QSPI programming)"\
+                             quartus_pfg ${v_args} 1} result_text result_options]
+        if {${v_result}!=0} {
+            return -code ${v_result} ${result_text}
+        }
+
+        return
+
+    }
+
+    # Generate SOF using prebuilt SOF and (u-boot-spl-dtb).hex file
+    # .hex  - U-Boot secondary program loader for FPGA First
+
+    proc ::build_shell::ff_post_agx5e_process {} {
+
+        variable v_proj_base_dir
+        variable v_proj_name
+
+        # Find HPS U-Boot SPL
+        set v_hex_search_path [file join ${v_proj_base_dir} "scripts" "ext"]
+        set v_hex_list        [glob -directory ${v_hex_search_path} *.hex]
+        set v_num_hex         [llength ${v_hex_list}]
+
+        if {${v_num_hex} == 0} {
+            return -code error "no .hex file found in ${v_hex_search_path}"
+        } elseif {${v_num_hex} > 1} {
+            return -code error "multiple .hex files found in ${v_hex_search_path}"
+        }
+
+        set v_hex_path [lindex ${v_hex_list} 0]
+
+        # Generate SOF with attached FSBL (First Stage Bootloader) from SPL (Secondary Program Loader) binary file.
+        set v_sof_path     [file join ${v_proj_base_dir} "quartus" "output_files" "${v_proj_name}_time_limited.sof"]
+        set v_sof_out_path [file join ${v_proj_base_dir} "quartus" "output_files" "fsbl_${v_proj_name}_time_limited.sof"]
+
+        set v_args [list -c ${v_sof_path} ${v_sof_out_path} -o hps_path=${v_hex_path}]
+
+        set v_result [catch {::build_shell::run_quartus_executable "Create uboot SOF"\
                              quartus_pfg ${v_args} 1} result_text result_options]
         if {${v_result}!=0} {
             return -code ${v_result} ${result_text}
