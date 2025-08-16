@@ -62,6 +62,8 @@ if {${v_board_name} == "A10_660_DEVKIT"} {
   source ${v_shell_design_root}/hps_subsystem/variants/agilex_5e_macnica_sulfur/hps_create.tcl
 } elseif {${v_board_name} == "AGX_5E_TERASIC_DE25_Devkit"} {
   source ${v_shell_design_root}/hps_subsystem/variants/agilex_5e_terasic_de25/hps_create.tcl
+} elseif {${v_board_name} == "AGX_3C_Devkit"} {
+  source ${v_shell_design_root}/hps_subsystem/variants/agilex_3c_si/hps_create.tcl
 } else {
   send_message ERROR "devkit ${v_board_name} not supported"
 }

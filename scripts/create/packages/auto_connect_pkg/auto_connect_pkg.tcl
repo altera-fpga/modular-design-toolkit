@@ -1,268 +1,246 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-package provide auto_connect_pkg  1.0
-package require Tcl               8.0
-package require -exact qsys       20.1
-variable test_mode 0
+package provide auto_connect_pkg 1.0
 
-namespace eval ::auto_connect_pkg {
+package require Tcl              8.0
+package require qsys
 
-  # Export functions
-  namespace export do_connect_subsystems
+# Helper to connect generic interfaces
 
-  variable pkg_dir [file join [pwd] [file dirname [info script]]]
+namespace eval auto_connect_pkg {
 
-  # Setup
-  variable param_array
-  variable system
-  variable logs
+    namespace export do_connect_subsystems
 
-}
+    variable pkg_dir [file join [pwd] [file dirname [info script]]]
 
-# connect_subsytems =================================================================
-# -------- Output methods for debugging --------
-proc print_instance {instance} {
-  set properties [get_instance_properties $instance]
-  set result ""
+    proc ::auto_connect_pkg::append_2d_list {list index value} {
 
-  foreach property $properties {
-    set result "$result\n $property : [get_instance_property $instance $property]"
-  }
-  return $result
-}
+        set v_sub_list [lindex ${list} ${index}]
+        set v_sub_list [linsert ${v_sub_list} end ${value}]
+        set v_list     [lreplace ${list} ${index} ${index} ${v_sub_list}]
 
-proc print_instances {instances} {
-  foreach instance $instances {
-    puts $instance
-    puts [print_instance $instance]
-  }
-}
+        return ${v_list}
 
-proc print_interface {instance interface} {
-  set properties [get_interface_properties $interface]
-  set result ""
-
-  foreach property $properties {
-    set result "$result\n $property : [get_instance_interface_property $instance $interface $property]"
-  }
-  return $result
-}
-
-proc print_parameters {instance interface} {
-  set parameters [get_instance_interface_parameters $instance $interface]
-  set result ""
-
-  foreach parameter $parameters {
-    set result "$result\n $instance : $interface : $parameter : [get_instance_interface_parameter_value $instance $interface $parameter]"
-  }
-
-  return $result
-}
-# -------------------- end --------------------
-
-# append to 2d list
-proc 2d_append {2d y value} {
-    return [lreplace $2d $y $y [linsert [lindex $2d $y] end $value]]
-}
-
-# Get full component from simple component
-# Use interface CLASS_NAME to get interface class and type
-# Return full component {instance interface label class type}s
-proc get_full_component {component} {
-    if {[llength $component] != 3} {
-        send_message INFO "Invalid component or incorrect component format"
     }
-    set value [get_instance_interface_property [lindex $component 0] [lindex $component 1] CLASS_NAME]
-    set value_split [split $value "_"]
-    lappend component [join [lrange $value_split 0 end-1] "_"]
-    lappend component [lindex $value_split end]
-    return $component
-}
 
-# Get list of all ports of component (instance.interface)
-proc get_ports {component} {
-    return [get_instance_interface_ports [lindex $component 0] [lindex $component 1]]  
-}
+    # Get CLASS_NAME property of a component, and append to the component
+    proc ::auto_connect_pkg::get_full_component {component} {
 
-# Get list of properties of port of component
-# Return list {direction role width}
-proc get_port_properties {component port} {
-    set dir [get_instance_interface_port_property [lindex $component 0] [lindex $component 1] $port DIRECTION]
-    set role [get_instance_interface_port_property [lindex $component 0] [lindex $component 1] $port ROLE]
-    set width [get_instance_interface_port_property [lindex $component 0] [lindex $component 1] $port WIDTH]
-    return [list $dir $role $width]
-}
-
-# Get list of ports with properties
-proc get_ports_properties {component} {
-    set ports [get_ports $component]
-    set ports_properties {}
-    for {set i 0} {$i < [llength $ports]} {incr i} {
-        set port [lindex $ports $i]
-        lappend ports_properties [get_port_properties $component $port]
-    }
-    return $ports_properties
-}
-
-# get component connection as <instance>.<interface
-proc connection_component {component} {
-  return "[lindex $component 0].[lindex $component 1]"
-}
-
-# Main method connects all auto_connect components
-proc ::auto_connect_pkg::do_connect_subsystems {system components} {
-  puts "do_connect_subsystems($system, $components)"
-  load_system $system
-
-  # create look up table for IO/valid direction connections
-  set input_keys {slave sink sender agent}
-  set output_keys {master source receiver host}
-  set valid_directions {{Bidir Bidir} {Input Output} {Output Input}}
-  # create arrays for bin sorting
-  set inputs {{} {} {} {}}
-  set outputs {{} {} {} {}}
-  set conduits {}
-
-
-  # loop through auto_connect_list and sort components into bins by class and type
-  for {set i 0} {$i < [llength $components]} {incr i} {
-    set component [get_full_component [lindex $components $i]]
-    set comp_type [lindex $component end]
-
-    puts "component - $component"
-
-    # sort by class and type
-    if {$comp_type == "end"} {
-        lappend conduits $component
-    } elseif {[set idx [lsearch $input_keys $comp_type]] >= 0} {
-        set inputs [2d_append $inputs $idx $component]
-    } elseif {[set idx [lsearch $output_keys $comp_type]] >= 0} {
-        set outputs [2d_append $outputs $idx $component]
-    } else {
-        puts "ERROR - UNSUPPORTED INTERFACE TYPE"
-    }
-  }
-
-  # iterate through all output types, iterate through output array of type
-  # compare to all corresponding inputs, attempt connection if matching
-  for {set i 0} {$i < [llength $outputs]} {incr i} {
-    set outputs_set [lindex $outputs $i]
-    set inputs_set [lindex $inputs $i]
-    for {set j 0} {$j < [llength $outputs_set]} {incr j} {
-      set output [lindex $outputs_set $j]
-      for {set k 0} {$k < [llength $inputs_set]} {incr k} {
-        set input [lindex $inputs_set $k]
-
-        # if matching labels
-        if {[lindex $output 2] == [lindex $input 2]} {
-          
-          set input_type  [lindex $input 3]
-          set output_type [lindex $output 3]
-
-          set type_keys   [list avalon altera_axi4]
-
-          # check the type matches (or check for special case AXI/AVMM)
-          if {$output_type == $input_type} {
-            add_connection [connection_component $output] [connection_component $input]
-          } elseif {([lsearch $type_keys $output_type] >= 0) && ([lsearch $type_keys $input_type] >= 0)} {
-            add_connection [connection_component $output] [connection_component $input]
-          }
-
-        }
-      }
-    }
-  }
-
-  # iterate all conduits against eachother, attempt connection if matching label and ports (ordered)
-  
-  puts "list of conduits detected" 
-  puts $conduits
-  
-  for {set i 0} {$i < [llength $conduits]-1} {incr i} {
-    for {set j [expr $i+1]} {$j < [llength $conduits]} {incr j} {
-      
-      set a [lindex $conduits $i]
-      set b [lindex $conduits $j]
-
-      set a_label [lindex $a 2]
-      set b_label [lindex $b 2]
-
-      # skip non matching labels
-      if {$a_label != $b_label} {
-        continue
-      }
-      
-      # perform deeper conduit matching based on interface port properties (direction role width)
-
-      set a_ports_props [get_ports_properties $a]
-      set b_ports_props [get_ports_properties $b]
-
-      # the number of ports must be the same for both interfaces
-      if {[llength $a_ports_props] != [llength $b_ports_props]} {
-        continue
-      }
-
-      # sort the ports properties lists by role
-      set a_ports_props [lsort -index 1 $a_ports_props]
-      set b_ports_props [lsort -index 1 $b_ports_props]
-
-      set matching true
-      for {set k 0} {($k < [llength $a_ports_props]) && $matching} {incr k} {
-
-        set a_temp_props [lindex $a_ports_props $k] 
-        set a_dir   [lindex $a_temp_props 0] 
-        set a_role  [lindex $a_temp_props 1] 
-        set a_width [lindex $a_temp_props 2] 
-
-        set b_temp_props [lindex $b_ports_props $k] 
-        set b_dir   [lindex $b_temp_props 0] 
-        set b_role  [lindex $b_temp_props 1] 
-        set b_width [lindex $b_temp_props 2] 
-
-        set directions [list $a_dir $b_dir]
-
-        # roles must match
-        if {$a_role != $b_role} {
-          puts "found error $a_role != $b_role"
-          set matching false
-
-        # widths must match 
-        } elseif {$a_width != $b_width} {
-          puts "found error $a_width != $b_width"
-          set matching false
-
-        # directions must be valid (i.e. opposite, or match in the case of bidirectional) 
-        } elseif {[lsearch $valid_directions $directions] < 0} {
-          puts "found error $directions not valid"
-          set matching false
+        if {[llength ${component}] != 3} {
+            send_message INFO "Invalid component or incorrect component format"
         }
 
-      }
+        set v_instance  [lindex ${component} 0]
+        set v_interface [lindex ${component} 1]
 
-      if {$matching} {
-        puts "$a -> $b -- attempt"
-        add_connection [connection_component $a] [connection_component $b]
-      }
+        set v_value_string [get_instance_interface_property ${v_instance} ${v_interface} CLASS_NAME]
+        set v_value_list   [split ${v_value_string} "_"]
+
+        lappend component [join [lrange ${v_value_list} 0 end-1] "_"]
+        lappend component [lindex ${v_value_list} end]
+        return ${component}
+
     }
-  }
-  
-  # save all connections to system
-  if {$::test_mode == 0} {
-    save_system $system
-  } else {
-    set post "_temp.qsys"
-    set $system [string replace $system end-5 end]
-    save_system "$system$post"
-  }
+
+    # Get list of all ports of component
+    proc ::auto_connect_pkg::get_ports {component} {
+
+        set v_instance  [lindex ${component} 0]
+        set v_interface [lindex ${component} 1]
+        set v_ports     [get_instance_interface_ports ${v_instance} ${v_interface}]
+
+        return ${v_ports}
+
+    }
+
+    # Get list of properties of port of component; return {direction role v_width}
+    proc ::auto_connect_pkg::get_port_properties {component port} {
+
+        set v_instance  [lindex ${component} 0]
+        set v_interface [lindex ${component} 1]
+
+        set v_direction [get_instance_interface_port_property ${v_instance} ${v_interface} ${port} DIRECTION]
+        set v_role      [get_instance_interface_port_property ${v_instance} ${v_interface} ${port} ROLE]
+        set v_width     [get_instance_interface_port_property ${v_instance} ${v_interface} ${port} WIDTH]
+
+        set v_properties [list ${v_direction} ${v_role} ${v_width}]
+
+        return ${v_properties}
+
+    }
+
+    # Get list of ports with properties
+    proc ::auto_connect_pkg::get_ports_properties {component} {
+
+        set v_ports_properties {}
+        set v_ports            [::auto_connect_pkg::get_ports ${component}]
+
+        foreach v_port ${v_ports} {
+            lappend v_ports_properties [::auto_connect_pkg::get_port_properties ${component} ${v_port}]
+        }
+
+        return ${v_ports_properties}
+
+    }
+
+    # Get component connection as <instance>.<interface>
+    proc ::auto_connect_pkg::connection_component {component} {
+
+        set v_instance  [lindex ${component} 0]
+        set v_interface [lindex ${component} 1]
+
+        return "${v_instance}.${v_interface}"
+
+    }
+
+    # Connect all auto_connect components
+    proc ::auto_connect_pkg::run_connections {system components} {
+
+        load_system ${system}
+
+        # create look up table for valid connections
+        set v_input_keys        {slave sink sender agent}
+        set v_output_keys       {master source receiver host}
+        set v_valid_connections {{Bidir Bidir} {Input Output} {Output Input}}
+
+        # create arrays for bin sorting
+        set v_inputs   {{} {} {} {}}
+        set v_outputs  {{} {} {} {}}
+        set v_conduits {}
+
+        # loop through auto_connect_list and sort components into bins by class and type
+        foreach v_component ${components} {
+
+            set v_component [::auto_connect_pkg::get_full_component ${v_component}]
+            set v_type      [lindex ${v_component} end]
+
+            # sort by class and type
+            if {${v_type} == "end"} {
+                lappend v_conduits ${v_component}
+            } elseif {[set v_index [lsearch ${v_input_keys} ${v_type}]] >= 0} {
+                set v_inputs [::auto_connect_pkg::append_2d_list ${v_inputs} ${v_index} ${v_component}]
+            } elseif {[set v_index [lsearch ${v_output_keys} ${v_type}]] >= 0} {
+                set v_outputs [::auto_connect_pkg::append_2d_list ${v_outputs} ${v_index} ${v_component}]
+            } else {
+                puts "ERROR - UNSUPPORTED INTERFACE TYPE"
+            }
+
+        }
+
+        # iterate through all output types, iterate through output array of type
+        # compare to all corresponding inputs, attempt connection if matching
+        for {set v_index 0} {${v_index} < [llength ${v_outputs}]} {incr v_index} {
+
+            set v_outputs_set [lindex ${v_outputs} ${v_index}]
+            set v_inputs_set  [lindex ${v_inputs} ${v_index}]
+
+            foreach v_output ${v_outputs_set} {
+                foreach v_input ${v_inputs_set} {
+
+                    # if matching labels
+                    if {[lindex ${v_output} 2] == [lindex ${v_input} 2]} {
+
+                        set v_input_type  [lindex ${v_input} 3]
+                        set v_output_type [lindex ${v_output} 3]
+                        set v_type_keys   [list avalon altera_axi4]
+
+                        # check the type matches (or check for special case AXI/AVMM)
+                        if {${v_output_type} == ${v_input_type}} {
+                            add_connection [::auto_connect_pkg::connection_component ${v_output}]\
+                                           [::auto_connect_pkg::connection_component ${v_input}]
+                        } elseif {([lsearch ${v_type_keys} ${v_output_type}] >= 0) &&\
+                                  ([lsearch ${v_type_keys} ${v_input_type}] >= 0)} {
+                            add_connection [::auto_connect_pkg::connection_component ${v_output}]\
+                                           [::auto_connect_pkg::connection_component ${v_input}]
+                        }
+
+                    }
+                }
+            }
+        }
+
+        # iterate all conduits against each other, attempt connection if matching label and ports (ordered)
+        for {set v_index_a 0} {${v_index_a} < [llength ${v_conduits}]-1} {incr v_index_a} {
+            for {set v_index_b [expr ${v_index_a}+1]} {${v_index_b} < [llength ${v_conduits}]} {incr v_index_b} {
+
+                set v_conduit_a [lindex ${v_conduits} ${v_index_a}]
+                set v_conduit_b [lindex ${v_conduits} ${v_index_b}]
+
+                set v_label_a [lindex ${v_conduit_a} 2]
+                set v_label_b [lindex ${v_conduit_b} 2]
+
+                # skip non v_matching labels
+                if {${v_label_a} != ${v_label_b}} {
+                    continue
+                }
+
+                # perform deeper conduit v_matching based on interface port properties (direction role width)
+
+                set v_properties_a [::auto_connect_pkg::get_ports_properties ${v_conduit_a}]
+                set v_properties_b [::auto_connect_pkg::get_ports_properties ${v_conduit_b}]
+
+                # the number of ports must be the same for both interfaces
+                if {[llength ${v_properties_a}] != [llength ${v_properties_b}]} {
+                    continue
+                }
+
+                # sort the ports properties lists by role
+                set v_properties_a [lsort -index 1 ${v_properties_a}]
+                set v_properties_b [lsort -index 1 ${v_properties_b}]
+
+                set v_matching true
+
+                for {set v_properties_index 0} {${v_properties_index} < [llength ${v_properties_a}]}\
+                    {incr v_properties_index} {
+
+                    set v_port_properties_a [lindex ${v_properties_a} ${v_properties_index}]
+                    set v_port_direction_a  [lindex ${v_port_properties_a} 0]
+                    set v_port_role_a       [lindex ${v_port_properties_a} 1]
+                    set v_port_width_a      [lindex ${v_port_properties_a} 2]
+
+                    set v_port_properties_b [lindex ${v_properties_b} ${v_properties_index}]
+                    set v_port_direction_b  [lindex ${v_port_properties_b} 0]
+                    set v_port_role_b       [lindex ${v_port_properties_b} 1]
+                    set v_port_width_b      [lindex ${v_port_properties_b} 2]
+
+                    set v_directions        [list ${v_port_direction_a} ${v_port_direction_b}]
+
+                    # roles must match
+                    if {${v_port_role_a} != ${v_port_role_b}} {
+                        set v_matching false
+                        break
+                    # widths must match
+                    } elseif {${v_port_width_a} != ${v_port_width_b}} {
+                        set v_matching false
+                        break
+                    # v_directions must be valid (i.e. opposite, or match in the case of bidirectional)
+                    } elseif {[lsearch ${v_valid_connections} ${v_directions}] < 0} {
+                        set v_matching false
+                        break
+                    }
+
+                }
+
+                if {${v_matching}} {
+                    add_connection [::auto_connect_pkg::connection_component ${v_conduit_a}]\
+                                   [::auto_connect_pkg::connection_component ${v_conduit_b}]
+                }
+            }
+        }
+
+        save_system
+
+    }
+
 }

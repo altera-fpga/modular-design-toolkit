@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ip>
+ <presets version="12.1">
+  <preset
+     name="LPDDR4"
+     kind="emif_io96b_hps"
+     version="All"
+     description=""
+     board="default"
+     preset_category="">
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|PHY_AC_PLACEMENT" value="BOT" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|CTRL_WR_DBI_EN" value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_S_CS_OUTPUT_OHM"
+       value="SERIES_40_OHM_CAL" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TREFW_NS" value="3.2E7" />
+   <parameter name="EMIF_SHOW_INTERNAL_SETTINGS" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRCD_NS" value="18.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|MEM_OPERATING_FREQ_MHZ_AUTOSET_EN"
+       value="true" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCMDCKE_NS" value="2.8125" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRPAB_NS" value="21.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|DIAG_FORCE_SLIM_EN" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_WLS" value="1.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRC_NS" value="63.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_AC_OUTPUT_IO_STD_TYPE"
+       value="LVSTL" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|EX_DESIGN_PMON_CH1_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_W2R_SAMECS_CYC"
+       value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_R2R_DIFFCS_CYC"
+       value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_DQ_IO_STD_TYPE"
+       value="LVSTL" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_REFCLK_IO_STD_TYPE"
+       value="TRUE_DIFF" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_W2W_DIFFCS_CYC"
+       value="0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TMRD_NS" value="14.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_REFCLK_FREQ_MHZ"
+       value="166.6667" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_CA_X_CS_ENABLE"
+       value="true" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_NUM_CHANNELS" value="1" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|ADV_CAL_ENABLE_REQ" value="true" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|INTERFACES"
+       value="refclk_in        clock    sink,refclk_out       clock    source,refclk_in_gpio   conduit  end,refclk_out_gpio  conduit  start" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRPPB_NS" value="18.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|EX_DESIGN_PMON_INTERNAL_JAMB_EN"
+       value="true" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_WR_POSTAMBLE_CYC" value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_S_AC_OUTPUT_OHM"
+       value="SERIES_40_OHM_CAL" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_CHANNEL_CS_WIDTH" value="1" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TZQCKE_NS" value="2.8125" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCKE_NS" value="7.5" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCSCKEH_NS" value="1.75" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|DIAG_HMC_ADDR_SWAP_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_CA_X_CK_ENABLE"
+       value="true" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_R2R_SAMECS_CYC"
+       value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|ADV_CAL_ENABLE_MARGIN"
+       value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TXSR_NS" value="287.5" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TZQCAL_NS" value="1000.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCKCKEH_NS" value="2.8125" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TREFI_NS" value="3904.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_T_REFCLK_INPUT_OHM"
+       value="RT_DIFF" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|CTRL_ECC_INLINE_EN" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TMRW_NS" value="10.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCCD_NS" value="7.5" />
+   <parameter name="EMIF_REF_CLK_SHARING" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|INSTANCE_ID" value="0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_DQ_X_TGT_WR" value="5" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|IS_HPS" value="true" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|CTRL_PERFORMANCE_PROFILE"
+       value="SEQ" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TFAW_NS" value="40.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCSCKE_NS" value="1.75" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_MINNUMREFSREQ" value="8192.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRTP_NS" value="7.5" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_CL_CYC" value="20" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TDQSCK_MAX_NS" value="3.5" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|ADV_CAL_ENABLE_WEQ" value="true" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_REFCLK_ADVANCED_SELECT_EN"
+       value="true" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|CTRL_ECC_AUTOCORRECT_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|EX_DESIGN_PMON_CH2_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|MEM_VREF_CA_X_CA_VALUE"
+       value="27.2" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TMRR_NS" value="7.5" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_GPIO_IO_STD_TYPE"
+       value="LVCMOS" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TECH_IS_X" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TZQLAT_NS" value="30.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_DQ_VREF" value="17.5" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_DQ_SLEW_RATE"
+       value="FASTEST" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_DQ_X_RON" value="6" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_T_GPIO_INPUT_OHM"
+       value="RT_OFF" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|CTRL_SCRAMBLER_EN" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_VREF_CA_X_CA_RANGE" value="2" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_T_DQ_INPUT_OHM"
+       value="RT_50_OHM_CAL" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_CA_X_CA_COMM" value="3" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_DIE_DENSITY_GBITS" value="8" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TMRWCKEL_NS" value="14.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_DQ_X_IDLE" value="off" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRFCPB_NS" value="140.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_CS_OUTPUT_IO_STD_TYPE"
+       value="LVSTL" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_S_DQ_OUTPUT_OHM"
+       value="SERIES_40_OHM_CAL" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_R2W_DIFFCS_CYC"
+       value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_REFCLK_FREQ_MHZ_AUTOSET_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_W2W_SAMECS_CYC"
+       value="0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TPPD_CYC" value="4.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_R_S_CK_OUTPUT_OHM"
+       value="SERIES_40_OHM_CAL" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|CTRL_RD_DBI_EN" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_VREF_DQ_X_RANGE" value="1" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TWR_NS" value="18.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TDQSCK_MIN_NS" value="1.5" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_PER_BANK_REF_EN" value="1" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_CA_VREF" value="13" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCKEHCMD_NS" value="7.5" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_R2W_SAMECS_CYC"
+       value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_DQS_IO_STD_TYPE"
+       value="DF_LVSTL" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|TURNAROUND_W2R_DIFFCS_CYC"
+       value="0" />
+   <parameter name="EMIF_TOPOLOGY" value="1x32" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_RD_PREAMBLE_CYC" value="0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_CWL_CYC" value="18" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRRD_NS" value="10.0" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|PORTS"
+       value="refclk_in        refclk_in         clk      input    1,refclk_out       refclk_out        clk      output   1,refclk_in_gpio   refclk_in_gpio    export   output   1,refclk_out_gpio  refclk_out_gpio   export   input    1" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|CTRL_DM_EN" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|DIAG_EXTRA_PARAMETERS" value="" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|MEM_ODT_CA_X_CA_ENABLE"
+       value="true" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|CUSTOM_ELABORATION_COMMANDS"
+       value="" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|MEM_OPERATING_FREQ_MHZ"
+       value="1066.667" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCKCKEL_NS" value="5.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_DQ_VREF" value="20" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_TERM_X_CK_OUTPUT_IO_STD_TYPE"
+       value="DF_LVSTL" />
+   <parameter name="EMIF_RZQ_SHARING" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_VREF_DQ_X_VALUE" value="18.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCKELCMD_NS" value="5.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|EX_DESIGN_PMON_CH3_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|PHY_SWIZZLE_MAP"
+       value="BYTE_SWIZZLE_CH0=3 2 X X X X 1 0;PIN_SWIZZLE_CH0_DQS0=1 0 3 2 4 7 6 5;PIN_SWIZZLE_CH0_DQS1=9 15 14 13 8 11 10 12;PIN_SWIZZLE_CH0_DQS2=19 18 20 21 16 23 22 17;PIN_SWIZZLE_CH0_DQS3=26 27 24 25 30 31 28 29;" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRAS_NS" value="42.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TWTR_NS" value="10.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|JEDEC_OVERRIDE_TABLE_PARAM_NAME"
+       value="" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TXP_NS" value="7.5" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|ANALOG_PARAM_DERIVATION_PARAM_NAME"
+       value="" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TESCKE_NS" value="2.8125" />
+   <parameter name="EMIF_PROTOCOL" value="LPDDR4" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TCKELCK_NS" value="5.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TSR_NS" value="15.0" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_RD_POSTAMBLE_CYC" value="0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_lpddr4|CTRL_AUTO_PRECHARGE_EN"
+       value="false" />
+   <parameter name="emif_io96b_hps|emif_0_lpddr4|MEM_TRFCAB_NS" value="280.0" />
+   <parameter
+       name="emif_io96b_hps|refclk_bridge|CONNECTIONS"
+       value="refclk_in        refclk_in_gpio,refclk_out_gpio  refclk_out" />
+  </preset>
+ </presets>
+</ip>

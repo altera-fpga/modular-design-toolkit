@@ -42,6 +42,8 @@ if {${v_board_name} == "A10_1150_DEVKIT"} {
     source ${v_shell_design_root}/board_subsystem/boards/AGX_5E_MACNICA_Sulfur_Devkit/board_create.tcl
 } elseif {${v_board_name} == "AGX_5E_TERASIC_DE25_Devkit"} {
     source ${v_shell_design_root}/board_subsystem/boards/AGX_5E_TERASIC_DE25_Devkit/board_create.tcl
+} elseif {${v_board_name} == "AGX_3C_Devkit"} {
+    source ${v_shell_design_root}/board_subsystem/boards/AGX_3C_Devkit/board_create.tcl
 } else {
     send_message ERROR "devkit ${v_board_name} not supported"
 }

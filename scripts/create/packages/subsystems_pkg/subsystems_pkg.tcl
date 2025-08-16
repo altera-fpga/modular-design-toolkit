@@ -1,521 +1,449 @@
 ###################################################################################
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025 Altera Corporation
 #
-# This software and the related documents are Intel copyrighted materials, and
+# This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
 # provided to you ("License"). Unless the License provides otherwise, you may
 # not use, modify, copy, publish, distribute, disclose or transmit this software
-# or the related documents without Intel's prior written permission.
+# or the related documents without Altera's prior written permission.
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-package provide subsystems_pkg  1.0
-package require Tcl             8.0
+package provide subsystems_pkg 1.0
+package require Tcl            8.0
 
-set script_dir [file dirname [info script]]
-lappend auto_path "$script_dir/../"
+set v_script_directory [file dirname [info script]]
+lappend auto_path [file join ${v_script_directory} ".."]
 
-package require hls_build_pkg         1.0
-package require software_manager_pkg  1.0
-package require irq_connect_pkg       1.0
-package require avmm_connect_pkg      1.0
-package require utils_pkg             1.0
+package require avmm_connect_pkg     1.0
+package require hls_build_pkg        1.0
+package require irq_connect_pkg      1.0
+package require software_manager_pkg 1.0
+package require utils_pkg            1.0
 
-namespace eval ::subsystems_pkg {
+# Helper to wrap subsystem scripts inside namespaces
 
-    # Export functions
+namespace eval subsystems_pkg {
+
     namespace export create_namespaces
 
     variable pkg_dir [file join [pwd] [file dirname [info script]]]
 
-    # Setup
-    variable param_array
+    # Create a namespace for each subsystem TCL script and return the list of namespaces
 
-}
+    proc ::subsystems_pkg::create_namespaces {parameter_array {derive_parameters 1}} {
 
-proc create_namespace_wrapper {name param_array} {
+        upvar ${parameter_array} v_parameter_array
 
-  upvar $param_array p_array
+        set v_namespace_list {}
 
-  # namespace needs to be named after instance name
+        for {set v_id 0} {${v_id} < $v_parameter_array(project,id)} {incr v_id} {
 
-  set ns_name $name
+            set v_result [catch {create_namespace_wrapper ${v_id} v_parameter_array} v_subsystem_namespace]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_subsystem_namespace}
+            }
 
-  # create a new namespace
-  namespace eval $ns_name {
+            lappend v_namespace_list ${v_subsystem_namespace}
 
-    array set param_array {}
-
-    set auto_connection_list {}
-
-    # ::TopInsert:: lists
-
-    set top_port_list {}
-    set declarations_list {}
-    set assignments_list {}
-    set qsys_inst_exports_list {}
-    set code_list {}
-
-    # debug subsystem lists
-
-    set debug_source_list {}
-    set debug_probe_list  {}
-
-    # irq priority list
-
-    set irq_priority_list {}
-
-    # avmm connection list
-
-    set avmm_conn_list  {}
-
-    #==============================================
-    # wrapper procedures for shell parameters
-
-    # add a shell parameter to the list, or modify the value of an existing shell parameter
-
-    proc set_shell_parameter {name value {add 1}} {
-
-      set curr_ns [namespace current]
-
-      if {[info exists ${curr_ns}::param_array($name)] || $add} {
-        set ${curr_ns}::param_array($name) $value
-      }
-
-    }
-
-    # get the value of a shell parameter from the list
-
-    proc get_shell_parameter {name} {
-
-      set curr_ns [namespace current]
-
-      if {[info exists ${curr_ns}::param_array($name)]} {
-        return [set ${curr_ns}::param_array($name)]
-      }
-
-      return -code error "Parameter $name does not exist in $curr_ns"
-
-    }
-
-    # get the full shell parameters list
-
-    proc get_shell_parameters_list {} {
-
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::param_array]
-
-    }
-
-    # update the shell parameter list values from an input list
-
-    proc update_parameters {parameter_list {add 0}} {
-
-      foreach parameter $parameter_list {
-        set name  [lindex $parameter 0]
-        set value [lindex $parameter 1]
-        set_shell_parameter $name $value $add
-      }
-
-    }
-
-    # returns a 1 if the shell parameter exists, otherwise 0
-
-    proc check_shell_parameter {name} {
-      set curr_ns [namespace current]
-      return [info exists ${curr_ns}::param_array($name)]
-    }
-
-    #======================================================
-    # wrapper procedures for the auto connection script
-
-    # add a connection to the auto connection list
-
-    proc add_auto_connection {instance_type interface anchor} {
-      set curr_ns [namespace current]
-      set connection [list $instance_type $interface $anchor]
-      lappend ${curr_ns}::auto_connection_list $connection
-    }
-
-    # get the auto connection list
-
-    proc get_auto_connections {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::auto_connection_list]
-    }
-
-    #======================================================
-    # wrapper procedures for ::TopInsert:: procedures
-
-    # add an external port to the top level hdl file (for use with ::TopInsert::io_insert)
-
-    proc add_top_port_list {interface width component_name} {
-      set curr_ns [namespace current]
-      set port    [list $interface $width $component_name]
-      lappend ${curr_ns}::top_port_list $port
-    }
-
-    # get the list of external ports to add to the top level hdl file (for use with ::TopInsert::io_insert)
-
-    proc get_top_port_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::top_port_list]
-    }
-
-    # add a declaration to the top level hdl file (for use with ::TopInsert::wire_insert)
-
-    proc add_declaration_list {interface width component_name} {
-      set curr_ns     [namespace current]
-      set declaration [list $interface $width $component_name]
-      lappend ${curr_ns}::declarations_list $declaration
-    }
-
-    # get the list of declarations to add to the top level hdl file (for use with ::TopInsert::wire_insert)
-
-    proc get_declaration_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::declarations_list]
-    }
-
-    # add an assignment to the top level hdl file (for use with ::TopInsert::assign_insert)
-
-    proc add_assignments_list {target source} {
-      set curr_ns     [namespace current]
-      set assignment  [list $target $source]
-      lappend ${curr_ns}::assignments_list $assignment
-    }
-
-    # get the list of assignments to add to the top level hdl file (for use with ::TopInsert::assign_insert)
-
-    proc get_assignments_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::assignments_list]
-    }
-
-    # add an export to a qsys instantiation in the top level hdl file (for use with ::TopInsert::export_insert)
-
-    proc add_qsys_inst_exports_list {port signal} {
-      set curr_ns [namespace current]
-      set export  [list $port $signal]
-      lappend ${curr_ns}::qsys_inst_exports_list $export
-    }
-
-    # get the list of exports to add to a qsys instantiation in the top level hdl file (for use with ::TopInsert::export_insert)
-
-    proc get_qsys_inst_exports_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::qsys_inst_exports_list]
-    }
-
-    proc add_code_insert_list {code} {
-      set curr_ns [namespace current]
-      lappend ${curr_ns}::code_list $code
-    }
-
-    proc get_code_insert_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::code_list]
-    }
-
-    #======================================================
-    # procedures for debug sources and probes
-
-    # add a debug source to the debug subsystem
-
-    proc add_debug_source {name width default} {
-      set curr_ns       [namespace current]
-      set debug_source  [list $name $width $default]
-      lappend ${curr_ns}::debug_source_list $debug_source
-    }
-
-    # get the debug source list to add to the debug subsystem
-
-    proc get_debug_source_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::debug_source_list]
-    }
-
-    # add a debug probe to the debug subsystem
-
-    proc add_debug_probe {name width} {
-      set curr_ns     [namespace current]
-      set debug_probe [list $name $width]
-      lappend ${curr_ns}::debug_probe_list $debug_probe
-    }
-
-    # get the debug probe list to add to the debug subsystem
-
-    proc get_debug_probe_list {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::debug_probe_list]
-    }
-    
-    #==========================================================
-    # IRQ priorities
-
-    proc add_irq_connection {instance interface priority label} {
-      set curr_ns      [namespace current]
-      set irq_priority [list $instance $interface $priority $label]
-      lappend ${curr_ns}::irq_priority_list $irq_priority
-    }
-
-    proc get_irq_connections {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::irq_priority_list]
-    }
-
-    #==========================================================
-    # AVMM priorities
-
-    # avmm_hosts is expected to either be:
-    # 1. "host" if the interface is a host
-    # 2. a list of host / offset pairs if the interface is an agent
-
-    proc add_avmm_connections {interface avmm_hosts} {
-
-      set v_instance_name [get_shell_parameter INSTANCE_NAME]
-      set curr_ns         [namespace current]
-
-      if {$avmm_hosts == "host"} {
-        # the interface is a host, so add default labels 
-        set avmm_conn   [list $v_instance_name $interface X auto_avmm_host]
-        lappend ${curr_ns}::avmm_conn_list $avmm_conn
-        set avmm_conn   [list $v_instance_name $interface X ${v_instance_name}_avmm_host]
-        lappend ${curr_ns}::avmm_conn_list $avmm_conn
-      } else {
-        # the interface is an agent, so add from host list
-        foreach conn $avmm_hosts {
-          set host    [lindex $conn 0]
-          set offset  [lindex $conn 1]
-          set avmm_conn   [list $v_instance_name $interface $offset ${host}_avmm_host]
-          lappend ${curr_ns}::avmm_conn_list $avmm_conn
         }
-      }
+
+        if {${derive_parameters} == 1} {
+            foreach v_namespace ${v_namespace_list} {
+                set v_procedure_list [namespace eval ::${v_namespace} "info procs"]
+                if {[lsearch ${v_procedure_list} "derive_parameters"] >= 0} {
+                    set v_result [catch {::${v_namespace}::derive_parameters v_parameter_array} v_result_text]
+                    if {${v_result} != 0} {
+                        return -code ${v_result} ${v_result_text}
+                    }
+                }
+            }
+        }
+
+        return ${v_namespace_list}
 
     }
-
-    proc get_avmm_connections {} {
-      set curr_ns [namespace current]
-      return [set ${curr_ns}::avmm_conn_list]
-    }
-
-    #==========================================================
-    # misc procedures
-
-    # write parameters back to the parameter array so that the proc
-    # derive parameters has access to all of the subsystem parameters
-    # including those that are not contained within the xml file,
-    # i.e. default parameters that are only initialized when sourcing
-    #      the script
-
-    proc back_propagate_params {name param_array} {
-
-      upvar $param_array p_array
-
-      set id $p_array($name,id)
-
-      set curr_ns [namespace current]
-
-      set running_list {}
-
-      foreach {name value} [array get ${curr_ns}::param_array] {
-        lappend running_list [list $name $value]
-      }
-      
-      set p_array($id,params) $running_list
-
-    }
-
-    # source the subsystem script within the namespace and initialize
-    # the shell parameters from the calling script
-
-    proc constructor {name param_array} {
-
-      upvar $param_array p_array
-
-      # get basic infromation about the subsystem
-      set id $p_array($name,id)
-      set path $p_array($id,script)
-      set type $p_array($id,type)
-
-      # get the global (project) and local (subsystem) parameters
-      set global_parameters $p_array(project,params)
-      set local_parameters  $p_array($id,params)
-      
-      # set default parameters required by all subsystems
-      set_shell_parameter SHELL_DESIGN_ROOT ""
-      set_shell_parameter PROJECT_NAME      ""
-      set_shell_parameter PROJECT_PATH      ""
-      set_shell_parameter INSTANCE_NAME     ""
-      set_shell_parameter FAMILY            ""
-      set_shell_parameter DEVICE            ""
-      set_shell_parameter QUARTUS_VERSION   ""
-      set_shell_parameter DEVKIT            ""
-
-      set_shell_parameter IRQ_PRIORITY      ""
-
-      # update subsystem parameters based on the global parameters
-      # this will update only the default parameters instantiated
-      # above. This is required first by some subsystems as the 
-      # DEVKIT / FAMILY parameters are used to source additional scripts.
-      update_parameters $global_parameters 0
-
-      # source the subsystem script
-      source $p_array($id,script)
-
-      # update subsystem parameters based on the global parameters
-      # this ensures local subsystem parameters that are set globally 
-      # in the xml file are updated. 
-      update_parameters $global_parameters 0
-
-      # update subsystem parameters based on the local parameters
-      update_parameters $local_parameters 0
-
-      # check if the subsystem uses an initialisation proc to
-      # source its create script based on parameter values
-      # run the initialisation procedure and rerun the update
-      # parameters to 
-      set init_exists [expr {[llength [info procs subsystem_init]] > 0}]
-      if {$init_exists} {
-        subsystem_init 
-        update_parameters $global_parameters 0
-        update_parameters $local_parameters 0
-      }
-
-      back_propagate_params $name p_array
-
-      # generate default parameters
-
-      set v_project_path    [get_shell_parameter PROJECT_PATH]
-      set v_project_name    [get_shell_parameter PROJECT_NAME]
-
-      switch $type {
-        top     {set folder ""}
-        user    {set folder "user"}
-        default {set folder "shell"}
-      }
-
-      set_shell_parameter SUBSYSTEM_SOURCE_PATH   [file dirname $path]
-
-      set_shell_parameter SUBSYSTEM_NAME          "$name"
-      set_shell_parameter SUBSYSTEM_IP_PATH       [file join $v_project_path non_qpds_ip $folder]
-      set_shell_parameter SUBSYSTEM_RTL_PATH      [file join $v_project_path rtl $folder]
-      set_shell_parameter SUBSYSTEM_QUARTUS_PATH  [file join $v_project_path quartus $folder]
-
-      set_shell_parameter PROJECT_PD_FILE         "$v_project_path/rtl/${v_project_name}_qsys.qsys"
-
-    }
-
-    interp alias {} file_copy {} ::utils_pkg::file_copy
-
-    # # copy a file/directory from one location to another (follow symlinks to root)
-    # proc file_copy {src_path dest_path} {
-    #   while {[file type $src_path] == "link" } {
-    #       set src_path [file readlink $src_path]
-    #   }
-    #   file copy -force $src_path $dest_path
-    # }
-
-    # generate an output string from an input terp file and a set of parameters
-    # using the altera_terp procedure
-
-    proc get_terp_content { filepath param_value } {
-
-      # Open and read terp file
-      set terp_path     $filepath
-      set terp_fd       [open $terp_path]
-      set terp_contents [read $terp_fd]
-      close $terp_fd
-
-      puts "params - $param_value"
-
-      # prepare parameter values for use
-      for {set i 0} {$i < [llength $param_value]} {incr i} {
-        puts "[lindex $param_value $i]" 
-        set terp_params(param$i)  [lindex $param_value $i]
-      }
-
-      set output_contents [altera_terp $terp_contents terp_params]
-      return $output_contents
-
-    }
-
-    # generate an output file from an input terp file and a set of parameters
-    # the output file is created in the same location as the input file
-
-    proc evaluate_terp_file {terp_path params run del} {
-
-      set output_path   [file rootname $terp_path]        ;# remove the .terp extension
-
-      # get the output file contents
-      set file_contents [get_terp_content "$terp_path" \
-                        $params]
-
-      # write the contents to the output file
-      set   output_file  [open $output_path w+]
-      puts  $output_file $file_contents
-      close $output_file
-
-      # evaluate the output file as a tcl script
-      if { $run == 1 } {
-        source $output_path
-      }
-
-      # delete the original .terp file
-      if { $del == 1 } {
-        file delete -force -- $terp_path
-      }
-
-    }
-
-  }
-
-  # add the subsystem script contents to the namespace and initialize the shell parameters
-  ${ns_name}::constructor $name p_array
-
-  # remove the constructor procedure so it cannot be used
-  namespace forget $ns_name constructor
-
-  return $ns_name
 
 }
 
-# create a namespace for each .tcl script in the script_list and return the list of namespaces
-# the shell parameters in the namespaces are initialised from the parameter_list argument
+proc create_namespace_wrapper {id parameter_array} {
 
-proc ::subsystems_pkg::create_namespaces {param_array {derive_parameters 1}} {
+    upvar ${parameter_array} v_parameter_array
 
-  upvar $param_array p_array
+    # Namespace needs to be named after instance name
+    set v_namespace_name $v_parameter_array(${id},name)
 
-  set namespace_list {}
+    # Create a new namespace
+    namespace eval ${v_namespace_name} {
 
-  for {set id 0} {$id < $p_array(project,id)} {incr id} {
+        array set v_parameter_array {}
 
-    set current_script $p_array($id,script)
+        array set v_connection_array          {}
+        set v_connection_array(general)       {}
+        set v_connection_array(memory_mapped) {}
+        set v_connection_array(interrupts)    {}
 
-    set param_list [concat $p_array(project,params) $p_array($id,params)]       ;# concatenate the project (common) and subsystem specific parameter lists
+        array set v_verilog_insert_array         {}
+        set v_verilog_insert_array(ports)        {}
+        set v_verilog_insert_array(declarations) {}
+        set v_verilog_insert_array(assignments)  {}
+        set v_verilog_insert_array(exports)      {}
+        set v_verilog_insert_array(generic)      {}
 
-    puts "creating namespace $p_array($id,name) with $param_list"
+        proc pre_creation_step    {} {}
+        proc creation_step        {} {}
+        proc post_creation_step   {} {}
+        proc post_connection_step {} {}
 
-    set current_namespace [create_namespace_wrapper $p_array($id,name) p_array]
-    lappend namespace_list $current_namespace
+        #==============================================
 
-  }
+        # Add/Modify a parameter
 
-  # note: the derive_parameters procedure might contain qsys commands so
-  #       cannot be called in quartus. 
+        proc set_shell_parameter {parameter_name parameter_value {add 1}} {
+            set v_current_namespace [namespace current]
+            if {([info exists ${v_current_namespace}::v_parameter_array(${parameter_name})] == 1) || (${add} == 1)} {
+                set ${v_current_namespace}::v_parameter_array(${parameter_name}) ${parameter_value}
+            }
+            return -code ok
+        }
 
-  if {$derive_parameters==1} {
-    foreach current_namespace $namespace_list {
-      set procedure_list [namespace eval ::$current_namespace "info procs"] 
-      if { [lsearch $procedure_list "derive_parameters"] >= 0} {
-        ::${current_namespace}::derive_parameters p_array  
-      }
+        # Get the value of a parameter
+
+        proc get_shell_parameter {parameter_name} {
+            set v_current_namespace [namespace current]
+            if {[info exists ${v_current_namespace}::v_parameter_array(${parameter_name})]} {
+                return [set ${v_current_namespace}::v_parameter_array(${parameter_name})]
+            }
+            return -code error "Parameter ${parameter_name} does not exist in ${v_current_namespace}"
+        }
+
+        # Get the parameter array
+
+        proc get_shell_parameter_array {} {
+            set v_current_namespace [namespace current]
+            return [set ${v_current_namespace}::v_parameter_array]
+        }
+
+        # Add/Update parameter array from a list of parameters
+
+        proc set_multiple_shell_parameters {parameter_list {add 0}} {
+            foreach {parameter_name parameter_value} [join ${parameter_list}] {
+                set_shell_parameter ${parameter_name} ${parameter_value} ${add}
+            }
+            return -code ok
+        }
+
+        # Check a parameter exists. Return 1 if the parameter exists, otherwise 0
+
+        proc check_shell_parameter_exists {parameter_name} {
+            set v_current_namespace [namespace current]
+            return [info exists ${v_current_namespace}::v_parameter_array(${parameter_name})]
+        }
+
+        #======================================================
+
+        # Add a generic interface for automatic connection
+
+        proc add_auto_connection {instance interface label} {
+            set v_current_namespace [namespace current]
+            lappend ${v_current_namespace}::v_connection_array(general) [list ${instance} ${interface} ${label}]
+            return -code ok
+        }
+
+        # Add an interrupt interface for automatic connection
+
+        proc add_irq_connection {instance interface priority label} {
+            set v_current_namespace [namespace current]
+            set v_interrupt [list ${instance} ${interface} ${priority} ${label}]
+            lappend ${v_current_namespace}::v_connection_array(interrupts) ${v_interrupt}
+            return -code ok
+        }
+
+        # Add an interrupt interface for automatic connection
+
+        proc add_avmm_connections {interface hosts} {
+            set v_current_namespace [namespace current]
+            set v_instance          [get_shell_parameter INSTANCE_NAME]
+
+            if {[string equal "host" ${hosts}] == 1} {
+                set v_connection [list ${v_instance} ${interface} X auto_avmm_host]
+                lappend ${v_current_namespace}::v_connection_array(memory_mapped) ${v_connection}
+                set v_connection [list ${v_instance} ${interface} X "${v_instance}_avmm_host"]
+                lappend ${v_current_namespace}::v_connection_array(memory_mapped) ${v_connection}
+            } else {
+                foreach {host offset} [join ${hosts}] {
+                    set v_connection [list ${v_instance} ${interface} ${offset} "${host}_avmm_host"]
+                    lappend ${v_current_namespace}::v_connection_array(memory_mapped) ${v_connection}
+                }
+            }
+            return -code ok
+        }
+
+        # Get the automatic connection array
+
+        proc get_connection_array {} {
+            set v_current_namespace [namespace current]
+            return [array get ${v_current_namespace}::v_connection_array]
+        }
+
+        #======================================================
+
+        # Add a port (to the top level hdl file)
+
+        proc add_top_port_list {type width signal} {
+            set v_current_namespace [namespace current]
+            lappend ${v_current_namespace}::v_verilog_insert_array(ports) [list ${type} ${width} ${signal}]
+            return -code ok
+        }
+
+        # Add a declaration (to the top level hdl file)
+
+        proc add_declaration_list {type width signal} {
+            set v_current_namespace [namespace current]
+            lappend ${v_current_namespace}::v_verilog_insert_array(declarations) [list ${type} ${width} ${signal}]
+            return -code ok
+        }
+
+        # Add an assignment (to the top level hdl file)
+
+        proc add_assignments_list {signal expression} {
+            set v_current_namespace [namespace current]
+            lappend ${v_current_namespace}::v_verilog_insert_array(assignments) [list ${signal} ${expression}]
+            return -code ok
+        }
+
+        # Add an export to the Platform Designer component (in the top level hdl file)
+
+        proc add_qsys_inst_exports_list {port signal} {
+            set v_current_namespace [namespace current]
+            lappend ${v_current_namespace}::v_verilog_insert_array(exports) [list ${port} ${signal}]
+            return -code ok
+        }
+
+        # Add a generic Verilog code block (to the top level hdl file)
+
+        proc add_code_insert_list {code} {
+            set v_current_namespace [namespace current]
+            lappend ${v_current_namespace}::v_verilog_insert_array(generic) ${code}
+            return -code ok
+        }
+
+        # Get the Verilog insertion array
+
+        proc get_verilog_insert_array {} {
+            set v_current_namespace [namespace current]
+            return [array get ${v_current_namespace}::v_verilog_insert_array]
+        }
+
+        #==========================================================
+
+        # Write namespace parameters back to the global parameter array
+        # - Allows parameters set internally (i.e. not in XML design file)
+        #   to be visible to other subsystems for derive_parameters procedure
+
+        proc write_back_parameters {id parameter_array} {
+
+            upvar ${parameter_array} v_global_parameter_array
+            set v_current_namespace [namespace current]
+
+            set v_parameter_list {}
+            foreach {parameter_name parameter_value} [array get ${v_current_namespace}::v_parameter_array] {
+                lappend v_parameter_list [list ${parameter_name} ${parameter_value}]
+            }
+
+            set v_global_parameter_array(${id},params) ${v_parameter_list}
+            return -code ok
+
+        }
+
+        # Initialize parameters and source the subsystem script within the namespace
+
+        proc constructor {id parameter_array} {
+
+            upvar ${parameter_array} v_global_parameter_array
+            set v_current_namespace  [namespace current]
+
+            set v_project_name $v_global_parameter_array(project,name)
+            set v_project_path $v_global_parameter_array(project,path)
+
+            set v_subsystem_name   $v_global_parameter_array(${id},name)
+            set v_subsystem_script $v_global_parameter_array(${id},script)
+            set v_subsystem_type   $v_global_parameter_array(${id},type)
+
+            set v_global_parameter_list $v_global_parameter_array(project,params)
+            set v_local_parameter_list  $v_global_parameter_array(${id},params)
+
+            # Default parameters required by all subsystems
+            set_shell_parameter SHELL_DESIGN_ROOT ""
+            set_shell_parameter PROJECT_NAME      ""
+            set_shell_parameter PROJECT_PATH      ""
+            set_shell_parameter INSTANCE_NAME     ""
+            set_shell_parameter FAMILY            ""
+            set_shell_parameter DEVICE            ""
+            set_shell_parameter QUARTUS_VERSION   ""
+            set_shell_parameter DEVKIT            ""
+            set_shell_parameter SPEED_GRADE       ""
+
+            set_shell_parameter IRQ_PRIORITY      ""
+
+            # Update subsystem parameters from global parameters
+            # - This will only UPDATE default parameters
+            # - Required before sourcing subsystem script as some subsystems
+            #   will source additional scripts (i.e. based on DEVKIT)
+            set v_result [catch {${v_current_namespace}::set_multiple_shell_parameters ${v_global_parameter_list} 0}\
+                                 v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            # Source the subsystem script
+            set v_result [catch {source ${v_subsystem_script}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            # Update subsystem parameters from global parameters
+            # - Required for globally set subsystem parameters
+            #   that are shared by multiple subsystems
+            set v_result [catch {${v_current_namespace}::set_multiple_shell_parameters ${v_global_parameter_list} 0}\
+                                 v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            # Update subsystem parameters from local parameters
+            set v_result [catch {${v_current_namespace}::set_multiple_shell_parameters ${v_local_parameter_list} 0}\
+                                 v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            # Check if the subsystem uses a special initialization procedure
+            # - Run initialization and update the parameters
+            # - Required if the subsystem script uses non-default parameters
+            #   to source a secondary script
+            if {[llength [info procs subsystem_init]] > 0} {
+
+                set v_result [catch {${v_current_namespace}::subsystem_init} v_result_text]
+                if {${v_result} != 0} {
+                    return -code ${v_result} ${v_result_text}
+                }
+
+                set v_result [catch {${v_current_namespace}::set_multiple_shell_parameters\
+                                     ${v_global_parameter_list} 0} v_result_text]
+                if {${v_result} != 0} {
+                    return -code ${v_result} ${v_result_text}
+                }
+
+                set v_result [catch {${v_current_namespace}::set_multiple_shell_parameters\
+                                     ${v_local_parameter_list} 0} v_result_text]
+                if {${v_result} != 0} {
+                    return -code ${v_result} ${v_result_text}
+                }
+            }
+
+            set v_result [catch {${v_current_namespace}::write_back_parameters ${id} v_global_parameter_array}\
+                                 v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            # Create useful subsystem parameters
+            switch ${v_subsystem_type} {
+                top     {set v_folder ""}
+                user    {set v_folder "user"}
+                default {set v_folder "shell"}
+            }
+
+            set_shell_parameter SUBSYSTEM_NAME         ${v_subsystem_name}
+            set_shell_parameter SUBSYSTEM_SOURCE_PATH  [file dirname ${v_subsystem_script}]
+            set_shell_parameter SUBSYSTEM_IP_PATH      [file join ${v_project_path} non_qpds_ip ${v_folder}]
+            set_shell_parameter SUBSYSTEM_RTL_PATH     [file join ${v_project_path} rtl ${v_folder}]
+            set_shell_parameter SUBSYSTEM_QUARTUS_PATH [file join ${v_project_path} quartus ${v_folder}]
+
+            set_shell_parameter PROJECT_PD_FILE [file join ${v_project_path} rtl "${v_project_name}_qsys.qsys"]
+
+            return -code ok
+
+        }
+
+        # Evaluate a terp template file
+
+        proc evaluate_terp_file {terp_file parameters run delete} {
+
+            set v_current_namespace  [namespace current]
+
+            set v_output_file [file rootname ${terp_file}]
+
+            set v_result [catch {${v_current_namespace}::get_terp_content ${terp_file} ${parameters}} v_file_contents]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_file_contents}
+            }
+
+            set v_result [catch {open ${v_output_file} w+} v_fid]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_fid}
+            }
+
+            puts  ${v_fid} ${v_file_contents}
+            close ${v_fid}
+
+            # Evaluate the output file as a tcl script
+            if {${run} == 1} {
+                source ${v_output_file}
+            }
+
+            # Delete the source .terp file
+            if {${delete} == 1} {
+                file delete -force -- ${terp_file}
+            }
+
+            return -code ok
+
+        }
+
+        # Generate an output string from a terp file
+
+        proc get_terp_content {terp_file parameters} {
+
+            set v_result [catch {open ${terp_file}} v_fid]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_fid}
+            }
+
+            set v_terp_file_contents [read ${v_fid}]
+            close ${v_fid}
+
+            array set v_terp_parameter_array {}
+
+            for {set v_index 0} {${v_index} < [llength ${parameters}]} {incr v_index} {
+                set v_terp_parameter_array(param${v_index}) [lindex ${parameters} ${v_index}]
+            }
+
+            set v_result [catch {altera_terp ${v_terp_file_contents} v_terp_parameter_array} v_output_file_contents]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_output_file_contents}
+            }
+
+            return ${v_output_file_contents}
+
+        }
+
+        interp alias {} file_copy {} ::utils_pkg::file_copy
+
     }
-  }
 
-  return $namespace_list
+    # Add the subsystem script contents to the namespace and initialize the parameters
+    set v_result [catch {${v_namespace_name}::constructor ${id} v_parameter_array} v_result_text]
+    if {${v_result} != 0} {
+        return -code ${v_result} ${v_result_text}
+    }
+
+    # Remove the constructor procedure so it cannot be used
+    namespace forget ${v_namespace_name} constructor
+
+    return ${v_namespace_name}
 
 }

@@ -1,17 +1,17 @@
-%###################################################################################
-%# Copyright (C) 2025 Intel Corporation
-%#
-%# This software and the related documents are Intel copyrighted materials, and
-%# your use of them is governed by the express license under which they were
-%# provided to you ("License"). Unless the License provides otherwise, you may
-%# not use, modify, copy, publish, distribute, disclose or transmit this software
-%# or the related documents without Intel's prior written permission.
-%#
-%# This software and the related documents are provided as is, with no express
-%# or implied warranties, other than those that are expressly stated in the License.
-%###################################################################################
+%##################################################################################
+% Copyright (C) 2025 Altera Corporation
+%
+% This software and the related documents are Altera copyrighted materials, and
+% your use of them is governed by the express license under which they were
+% provided to you ("License"). Unless the License provides otherwise, you may
+% not use, modify, copy, publish, distribute, disclose or transmit this software
+% or the related documents without Altera's prior written permission.
+%
+% This software and the related documents are provided as is, with no express
+% or implied warranties, other than those that are expressly stated in the License.
+%##################################################################################
 
-function dsp_builder_build_model(modelDir, modelName, family, outdir)
+function dsp_builder_build_model(modelDir, modelName, family, speedGrade, outdir)
 
     t = [datetime('now')];
     datetime_string = datestr(t);
@@ -22,32 +22,30 @@ function dsp_builder_build_model(modelDir, modelName, family, outdir)
     fprintf('Model Name       : %s\n', modelName)
     fprintf('Model Directory  : %s\n', modelDir)
     fprintf('Device Family    : %s\n', family)
-    fprintf('Output Directory : %s\n', outdir)    
+    fprintf('Output Directory : %s\n', outdir)
+    fprintf('Speed Grade      : %s\n', speedGrade)
     fprintf('===========================================================\n\n')
-    
+
     try
         cd(modelDir);
-        load_model_set_device_set_rtl_dir(modelName, family, outdir);
+        load_model_set_device_set_rtl_dir(modelName, family, speedGrade, outdir);
         sim(modelName);
-    catch ME       
+    catch ME
         disp(['ID: ' ME.identifier]);
-        % rethrow(ME)
     end
 
     try
-        save_system         
+        save_system
     catch ME
         disp(['ID: ' ME.identifier]);
-        % rethrow(ME)
-        
-        bdclose('all')      % force close symlink without saving
+        bdclose('all')
     end
 
 end
 
-function load_model_set_device_set_rtl_dir(modelName, family, outdir)
+function load_model_set_device_set_rtl_dir(modelName, family, speedGrade, outdir)
 
-    narginchk(3, 3)
+    narginchk(4, 4)
 
     load_system(modelName);
 
@@ -58,7 +56,7 @@ function load_model_set_device_set_rtl_dir(modelName, family, outdir)
         for i = 1:numel(DeviceBlks)
             dspba.set_param(DeviceBlks{i},'family', family);
             dspba.set_param(DeviceBlks{i},'device', 'AUTO');
-            dspba.set_param(DeviceBlks{i},'speed', '-2');
+            dspba.set_param(DeviceBlks{i},'speed', speedGrade);
         end
     end
 
