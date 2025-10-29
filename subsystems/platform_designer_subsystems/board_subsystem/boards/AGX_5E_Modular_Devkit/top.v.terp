@@ -26,7 +26,7 @@ module $name
 
   input wire        clk_100_mhz;
   input wire        rst_pb_n;
-  input wire [7:0]  user_pb_n;
+  input wire [0:0]  user_pb_n;
 
   ${name}_qsys u0 (
     .${board_inst_name}_i_clk_clk             (clk_100_mhz),
