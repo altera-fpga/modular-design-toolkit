@@ -671,12 +671,19 @@ namespace eval create_shell {
         set v_project_path $v_parameter_array(project,path)
         set v_project_name $v_parameter_array(project,name)
         set v_xml_path     $v_project_settings(xml_path)
-
-        set v_design_qsf    [file join ${v_xml_path} design.qsf]
+        set v_design_dir_path [file dirname $v_xml_path]
+        set v_design_qsf    [file join ${v_design_dir_path} design.qsf]
         set v_qsf_directory [file join ${v_project_path} quartus shell]
 
         if {[file exists ${v_design_qsf}] == 1} {
             file copy -force ${v_design_qsf} ${v_qsf_directory}
+        }
+
+        set v_design_sdc    [file join ${v_design_dir_path} design.sdc]
+        set v_sdc_directory [file join ${v_project_path} sdc shell]
+
+        if {[file exists ${v_design_sdc}] == 1} {
+            file copy -force ${v_design_sdc} ${v_sdc_directory}
         }
 
         set v_qsf_files_list {}
