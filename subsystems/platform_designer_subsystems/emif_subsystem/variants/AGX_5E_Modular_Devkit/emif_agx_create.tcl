@@ -99,10 +99,6 @@ proc derive_parameters {param_array} {
 
 # define the procedures used by the create_subsystems_qsys.tcl script
 
-proc pre_creation_step {} {
-    transfer_files
-}
-
 proc creation_step {} {
     set v_dummy [get_shell_parameter DUMMY]
 
@@ -119,15 +115,6 @@ proc post_creation_step {} {
         add_auto_connections
         edit_top_v_file
     }
-}
-
-# copy files from the shell install directory to the target project directory
-proc transfer_files {} {
-    set v_project_path      [get_shell_parameter PROJECT_PATH]
-    set v_script_path       [get_shell_parameter SUBSYSTEM_SOURCE_PATH]
-
-    exec cp -rf ${v_script_path}/non_qpds_ip/emif_shim               ${v_project_path}/non_qpds_ip/user
-    file_copy   ${v_script_path}/non_qpds_ip/emif_shim.ipx           ${v_project_path}/non_qpds_ip/user
 }
 
 # create the emif subsystem
@@ -157,7 +144,6 @@ proc create_emif_subsystem {} {
         add_instance ddr4_clk_bridge  altera_clock_bridge
         add_instance ddr4_rst_bridge  altera_reset_bridge
         add_instance ddr4_mm_bridge   altera_avalon_mm_bridge
-        add_instance ddr4_emif_shim   emif_shim
     }
 
 
@@ -429,16 +415,13 @@ proc create_emif_subsystem {} {
     if {${v_avmm_en}} {
         add_connection  ddr4_cal.cal_done_rst_n   ddr4_rst_bridge.in_reset
         add_connection  ddr4_cal.cal_done_rst_n   ddr4_mm_bridge.reset
-        add_connection  ddr4_cal.cal_done_rst_n   ddr4_emif_shim.axi_reset
 
-        add_connection  ddr4_mm_bridge.m0         ddr4_emif_shim.s_axi
-        add_connection  ddr4_emif_shim.m_axi      ddr4_emif.s0_axi4
+        add_connection  ddr4_mm_bridge.m0         ddr4_emif.s0_axi4
 
         if {${v_async_clk_en}} {
             add_connection  ddr4_clk_bridge.out_clk   ddr4_emif.${v_emif_clk_in_name}
             add_connection  ddr4_clk_bridge.out_clk   ddr4_rst_bridge.clk
             add_connection  ddr4_clk_bridge.out_clk   ddr4_mm_bridge.clk
-            add_connection  ddr4_clk_bridge.out_clk   ddr4_emif_shim.axi_clk
 
             add_interface           i_clk_ddr4_emif_emif_usr  clock       sink
             set_interface_property  i_clk_ddr4_emif_emif_usr  export_of   ddr4_clk_bridge.in_clk
@@ -446,7 +429,6 @@ proc create_emif_subsystem {} {
             add_connection    ddr4_emif.${v_emif_clk_out_name}     ddr4_clk_bridge.in_clk
             add_connection    ddr4_emif.${v_emif_clk_out_name}     ddr4_rst_bridge.clk
             add_connection    ddr4_emif.${v_emif_clk_out_name}     ddr4_mm_bridge.clk
-            add_connection    ddr4_emif.${v_emif_clk_out_name}     ddr4_emif_shim.axi_clk
 
             add_interface           o_clk_ddr4_emif_emif_usr  clock       source
             set_interface_property  o_clk_ddr4_emif_emif_usr  export_of   ddr4_clk_bridge.out_clk
@@ -495,8 +477,6 @@ proc create_emif_subsystem {} {
     add_interface           c_ddr4_emif_mem             conduit     end
     set_interface_property  c_ddr4_emif_mem             export_of   ddr4_emif.mem_0
 
-    set_connection_parameter_value  ddr4_mm_bridge.m0/ddr4_emif_shim.s_axi qsys_mm.maxAdditionalLatency {4}
-
     set_domain_assignment   ddr4_mm_bridge.m0 qsys_mm.maxAdditionalLatency 4
 
     set_postadaptation_assignment \
@@ -506,15 +486,7 @@ proc create_emif_subsystem {} {
     set_postadaptation_assignment \
       mm_interconnect_1|cmd_mux qsys_mm.postTransform.pipelineCount 1
     set_postadaptation_assignment \
-      mm_interconnect_1|cmd_mux.src/ddr4_emif_shim_s_axi_agent.write_cp qsys_mm.postTransform.pipelineCount 1
-    set_postadaptation_assignment \
       mm_interconnect_1|cmd_mux_001 qsys_mm.postTransform.pipelineCount 1
-    set_postadaptation_assignment \
-      mm_interconnect_1|cmd_mux_001.src/ddr4_emif_shim_s_axi_agent.read_cp qsys_mm.postTransform.pipelineCount 1
-    set_postadaptation_assignment \
-      mm_interconnect_1|ddr4_emif_shim_s_axi_agent.read_rp/router_002.sink qsys_mm.postTransform.pipelineCount 1
-    set_postadaptation_assignment \
-      mm_interconnect_1|ddr4_emif_shim_s_axi_agent.write_rp/router_001.sink qsys_mm.postTransform.pipelineCount 1
     set_postadaptation_assignment \
       mm_interconnect_1|ddr4_mm_bridge_m0_agent.cp/router.sink qsys_mm.postTransform.pipelineCount 1
     set_postadaptation_assignment \

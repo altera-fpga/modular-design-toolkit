@@ -16,6 +16,9 @@ set_shell_parameter TIMER_IRQ_PRIORITY  "1"
 
 set_shell_parameter MEMORY_SIZE         "0x400000"
 
+set_shell_parameter JTAG_UART_EN        {1}
+set_shell_parameter CPU_TIMER_EN        {1}
+
 proc derive_parameters {param_array} {
 
     upvar ${param_array} p_array
@@ -121,6 +124,9 @@ proc create_niosv_subsystem {} {
 
     set v_memory_size             [get_shell_parameter MEMORY_SIZE]
 
+    set v_jtag_uart_en            [get_shell_parameter JTAG_UART_EN]
+    set v_cpu_timer_en            [get_shell_parameter CPU_TIMER_EN]
+
     create_system ${v_instance_name}
     save_system   ${v_project_path}/rtl/shell/${v_instance_name}.qsys
 
@@ -133,8 +139,12 @@ proc create_niosv_subsystem {} {
     add_instance  cpu_mm_bridge   altera_avalon_mm_bridge
     add_instance  cpu             intel_niosv_m
     add_instance  cpu_ram         intel_onchip_memory
-    add_instance  cpu_jtag_uart   altera_avalon_jtag_uart
-    add_instance  cpu_timer       altera_avalon_timer
+    if {${v_jtag_uart_en}} {
+        add_instance  cpu_jtag_uart   altera_avalon_jtag_uart
+    }
+    if {${v_cpu_timer_en}} {
+        add_instance  cpu_timer       altera_avalon_timer
+    }
 
     # instance parameters
 
@@ -179,23 +189,27 @@ proc create_niosv_subsystem {} {
     set_instance_parameter_value  cpu_ram         initializationFileName      ""
     set_instance_parameter_value  cpu_ram         dataWidth                   32
 
-    # cpu_jtag_uart
-    set_instance_parameter_value  cpu_jtag_uart   writeBufferDepth            1024
-    set_instance_parameter_value  cpu_jtag_uart   writeIRQThreshold           8
-    set_instance_parameter_value  cpu_jtag_uart   useRegistersForWriteBuffer  0
-    set_instance_parameter_value  cpu_jtag_uart   readBufferDepth             1024
-    set_instance_parameter_value  cpu_jtag_uart   readIRQThreshold            8
-    set_instance_parameter_value  cpu_jtag_uart   useRegistersForReadBuffer   0
+    if {${v_jtag_uart_en}} {
+        # cpu_jtag_uart
+        set_instance_parameter_value  cpu_jtag_uart   writeBufferDepth            1024
+        set_instance_parameter_value  cpu_jtag_uart   writeIRQThreshold           8
+        set_instance_parameter_value  cpu_jtag_uart   useRegistersForWriteBuffer  0
+        set_instance_parameter_value  cpu_jtag_uart   readBufferDepth             1024
+        set_instance_parameter_value  cpu_jtag_uart   readIRQThreshold            8
+        set_instance_parameter_value  cpu_jtag_uart   useRegistersForReadBuffer   0
+    }
 
-    # cpu_timer
-    set v_drv_timer_preset [get_shell_parameter DRV_TIMER_PRESET]
-    set v_timer_period     [get_shell_parameter TIMER_PERIOD]
-    set v_timer_units      [get_shell_parameter TIMER_UNITS]
+    if {${v_cpu_timer_en}} {
+        # cpu_timer
+        set v_drv_timer_preset [get_shell_parameter DRV_TIMER_PRESET]
+        set v_timer_period     [get_shell_parameter TIMER_PERIOD]
+        set v_timer_units      [get_shell_parameter TIMER_UNITS]
 
-    apply_instance_preset cpu_timer ${v_drv_timer_preset}
+        apply_instance_preset cpu_timer ${v_drv_timer_preset}
 
-    set_instance_parameter_value  cpu_timer   period          ${v_timer_period}
-    set_instance_parameter_value  cpu_timer   periodUnits     ${v_timer_units}
+        set_instance_parameter_value  cpu_timer   period          ${v_timer_period}
+        set_instance_parameter_value  cpu_timer   periodUnits     ${v_timer_units}
+    }
 
     # create internal subsystem connections
 
@@ -203,31 +217,43 @@ proc create_niosv_subsystem {} {
     add_connection  cpu_clk_bridge.out_clk    cpu_mm_bridge.clk
     add_connection  cpu_clk_bridge.out_clk    cpu.clk
     add_connection  cpu_clk_bridge.out_clk    cpu_ram.clk1
-    add_connection  cpu_clk_bridge.out_clk    cpu_jtag_uart.clk
-    add_connection  cpu_clk_bridge.out_clk    cpu_timer.clk
+    if {${v_jtag_uart_en}} {
+        add_connection  cpu_clk_bridge.out_clk    cpu_jtag_uart.clk
+    }
+    if {${v_cpu_timer_en}} {
+        add_connection  cpu_clk_bridge.out_clk    cpu_timer.clk
+    }
 
     add_connection  cpu_rst_bridge.out_reset  cpu_mm_bridge.reset
     add_connection  cpu_rst_bridge.out_reset  cpu.reset
     add_connection  cpu_rst_bridge.out_reset  cpu_ram.reset1
-    add_connection  cpu_rst_bridge.out_reset  cpu_jtag_uart.reset
-    add_connection  cpu_rst_bridge.out_reset  cpu_timer.reset
+    if {${v_jtag_uart_en}} {
+        add_connection  cpu_rst_bridge.out_reset  cpu_jtag_uart.reset
+    }
+    if {${v_cpu_timer_en}} {
+        add_connection  cpu_rst_bridge.out_reset  cpu_timer.reset
+    }
 
     add_connection  cpu.data_manager          cpu_mm_bridge.s0
     add_connection  cpu.data_manager          cpu.dm_agent
     add_connection  cpu.data_manager          cpu.timer_sw_agent
     add_connection  cpu.data_manager          cpu_ram.axi_s1
-    add_connection  cpu.data_manager          cpu_jtag_uart.avalon_jtag_slave
-    add_connection  cpu.data_manager          cpu_timer.s1
+    if {${v_jtag_uart_en}} {
+        add_connection  cpu.data_manager          cpu_jtag_uart.avalon_jtag_slave
+    }
+    if {${v_cpu_timer_en}} {
+        add_connection  cpu.data_manager          cpu_timer.s1
+    }
 
     add_connection  cpu.instruction_manager    cpu.dm_agent
     add_connection  cpu.instruction_manager    cpu_ram.axi_s1
 
-    if {${v_uart_irq_priority} != "X"} {
+    if {(${v_jtag_uart_en} ) && (${v_uart_irq_priority} != "X")} {
         add_connection  cpu.platform_irq_rx   cpu_jtag_uart.irq
         set_connection_parameter_value  cpu.platform_irq_rx/cpu_jtag_uart.irq irqNumber ${v_uart_irq_priority}
     }
 
-    if {${v_timer_irq_priority} != "X"} {
+    if {(${v_cpu_timer_en} ) && (${v_timer_irq_priority} != "X")} {
         add_connection  cpu.platform_irq_rx   cpu_timer.irq
         set_connection_parameter_value  cpu.platform_irq_rx/cpu_timer.irq irqNumber ${v_timer_irq_priority}
     }
@@ -274,9 +300,13 @@ proc create_niosv_subsystem {} {
     set_connection_parameter_value  cpu.data_manager/cpu_ram.axi_s1                    baseAddress   "0x00000000"
     set_connection_parameter_value  cpu.data_manager/cpu.dm_agent                      baseAddress   "0x00400000"
     set_connection_parameter_value  cpu.data_manager/cpu.timer_sw_agent                baseAddress   "0x00410000"
-    set_connection_parameter_value  cpu.data_manager/cpu_timer.s1                      baseAddress   "0x00410040"
-    set_connection_parameter_value  cpu.data_manager/cpu_jtag_uart.avalon_jtag_slave   baseAddress   "0x00410060"
-    set_connection_parameter_value  cpu.data_manager/cpu_mm_bridge.s0                  baseAddress   "0x00410400"
+    if {${v_cpu_timer_en}} {
+        set_connection_parameter_value  cpu.data_manager/cpu_timer.s1                      baseAddress   "0x00410040"
+    }
+    if {${v_jtag_uart_en}} {
+        set_connection_parameter_value  cpu.data_manager/cpu_jtag_uart.avalon_jtag_slave   baseAddress   "0x00410060"
+    }
+    set_connection_parameter_value  cpu.data_manager/cpu_mm_bridge.s0                  baseAddress   "0x00420000"
 
     set_connection_parameter_value  cpu.instruction_manager/cpu_ram.axi_s1             baseAddress   "0x00000000"
     set_connection_parameter_value  cpu.instruction_manager/cpu.dm_agent               baseAddress   "0x00400000"
@@ -284,8 +314,13 @@ proc create_niosv_subsystem {} {
     lock_avalon_base_address  cpu_ram.axi_s1
     lock_avalon_base_address  cpu.dm_agent
     lock_avalon_base_address  cpu.timer_sw_agent
-    lock_avalon_base_address  cpu_timer.s1
-    lock_avalon_base_address  cpu_jtag_uart.avalon_jtag_slave
+    if {${v_cpu_timer_en}} {
+        lock_avalon_base_address  cpu_timer.s1
+    }
+    if {${v_jtag_uart_en}} {
+        lock_avalon_base_address  cpu_jtag_uart.avalon_jtag_slave
+    }
+    lock_avalon_base_address  cpu_mm_bridge.s0
 
     sync_sysinfo_parameters
     save_system

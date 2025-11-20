@@ -60,7 +60,7 @@ proc subsystem_init {} {
   } elseif {${v_cpu_ss_type} == "dniosvg"} {
     source ${v_shell_design_root}/cpu_subsystem/variants/dniosvg/dniosvg_create.tcl
   } else {
-    send_message ERROR "CPU subsystem type ${v_cpu_ss_type} not supported"
+    return -code error "CPU subsystem type ${v_cpu_ss_type} not supported"
   }
 
 }

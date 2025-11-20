@@ -14,8 +14,11 @@
 # create script specific parameters and default values
 
 # use command "jtag_debug_reset_system <service-path>"" in system-console
-set_shell_parameter REMOTE_RESET_EN "0"
-set_shell_parameter NUM_GEN_CLOCKS "0"
+set_shell_parameter REMOTE_RESET_EN             "0"
+set_shell_parameter NUM_GEN_CLOCKS              "0"
+set_shell_parameter EXT_REF_CLK_FREQ_MHZ            "0"
+set_shell_parameter NUM_RESETS                  "1"
+set_shell_parameter IOPLL_EN_PERMIT_CAL         "0"
 
 for {set v_i 0} {${v_i} < 10} {incr v_i} {
     set_shell_parameter GEN_CLK${v_i}_NAME        "clk_${v_i}"
@@ -30,7 +33,6 @@ set_shell_parameter RESET_MIN_LENGTH    "10"
 # Agilex only
 set_shell_parameter IO_BANK_PLL         "0"
 
-
 # resolve interdependencies
 proc derive_parameters {param_array} {
     upvar $param_array p_array
@@ -38,31 +40,41 @@ proc derive_parameters {param_array} {
     # get the input reference frequency from the board subsystem
     set v_drv_ref_clk_freq 0
 
-    for {set id 0} {$id < $p_array(project,id)} {incr id} {
+    set v_drv_ext_ref_clk [get_shell_parameter EXT_REF_CLK_FREQ_MHZ]
 
-        if {$p_array($id,type) == "board"} {
+    if {${v_drv_ext_ref_clk} == "0"} {
 
-            set params $p_array($id,params)
+        set v_drv_ext_ref_clk_en 0
+        for {set id 0} {$id < $p_array(project,id)} {incr id} {
 
-            foreach v_pair ${params} {
-                set v_name  [lindex ${v_pair} 0]
-                set v_value [lindex ${v_pair} 1]
-                set v_temp_array(${v_name}) ${v_value}
-            }
+            if {$p_array($id,type) == "board"} {
 
-            if {[info exists v_temp_array(INT_REF_CLK_FREQ)]} {
-                set v_drv_ref_clk_freq $v_temp_array(INT_REF_CLK_FREQ)
-                break
+                set params $p_array($id,params)
+
+                foreach v_pair ${params} {
+                    set v_name  [lindex ${v_pair} 0]
+                    set v_value [lindex ${v_pair} 1]
+                    set v_temp_array(${v_name}) ${v_value}
+                }
+
+                if {[info exists v_temp_array(INT_REF_CLK_FREQ)]} {
+                    set v_drv_ref_clk_freq $v_temp_array(INT_REF_CLK_FREQ)
+                    break
+                }
             }
         }
-    }
 
-    if {${v_drv_ref_clk_freq} == 0} {
-        send_message ERROR "could not find reference clock frequency (INT_REF_CLK_FREQ) from the board subsystem"
+        if {${v_drv_ref_clk_freq} == 0} {
+            send_message ERROR "could not find reference clock frequency (INT_REF_CLK_FREQ) from the board subsystem"
+        }
+    } else {
+        set v_drv_ext_ref_clk_en 1
+        set v_drv_ref_clk_freq [get_shell_parameter EXT_REF_CLK_FREQ_MHZ]
     }
 
     set_shell_parameter DRV_REF_CLK_FREQ    ${v_drv_ref_clk_freq}
     set_shell_parameter DRV_REF_CLK_FREQ_HZ [expr int(${v_drv_ref_clk_freq} * 1000000)]
+    set_shell_parameter DRV_EXT_REF_CLK_EN  ${v_drv_ext_ref_clk_en}
 
     set v_io_bank_pll [get_shell_parameter IO_BANK_PLL]
 
@@ -88,8 +100,8 @@ proc derive_parameters {param_array} {
 
     set_shell_parameter DRV_MAX_IOPLL_CLKS  ${v_drv_max_iopll_clks}
     set_shell_parameter DRV_NUM_IOPLLS      ${v_drv_num_ioplls}
-}
 
+}
 
 # define the procedures used by the create_subsystems_qsys.tcl script
 
@@ -107,7 +119,6 @@ proc post_creation_step {} {
     edit_top_v_file
 }
 
-
 # copy files from the shell install directory to the target project directory
 proc transfer_files {} {
     set v_shell_design_root [get_shell_parameter SHELL_DESIGN_ROOT]
@@ -120,7 +131,6 @@ proc transfer_files {} {
     file_copy ${v_subsys_dir}/non_qpds_ip/intel_vvp_reset_extend            ${v_project_path}/non_qpds_ip/shell
     file_copy ${v_subsys_dir}/non_qpds_ip/clock_subsystem.ipx               ${v_project_path}/non_qpds_ip/shell
 }
-
 
 # create the clock subsystem, add the required IP, parameterize it as appropriate,
 # add internal connections, and add interfaces to the boundary of the subsystem
@@ -139,6 +149,8 @@ proc create_clock_subsystem {} {
     set v_drv_num_ioplls            [get_shell_parameter DRV_NUM_IOPLLS]
 
     set v_drv_pll_bandwidth_preset  [get_shell_parameter DRV_PLL_BANDWIDTH_PRESET]
+    set v_num_resets                [get_shell_parameter NUM_RESETS]
+    set v_iopll_en_permit_cal       [get_shell_parameter IOPLL_EN_PERMIT_CAL]
 
     create_system ${v_instance_name}
     save_system   ${v_project_path}/rtl/shell/${v_instance_name}.qsys
@@ -167,7 +179,6 @@ proc create_clock_subsystem {} {
     #   - clocks and resets exported to top level
     #   - optional bridges to export clock / reset to top.v
 
-
     #===============================================================================================
     # input layer
 
@@ -175,21 +186,16 @@ proc create_clock_subsystem {} {
 
     # Add Instances
     add_instance input_clk_bridge   altera_clock_bridge
-    add_instance input_rst_bridge   altera_reset_bridge
+
     add_instance input_rst_ctrl     altera_reset_controller
 
     # Set Parameters
     # input_clk_bridge
     set_instance_parameter_value  input_clk_bridge  EXPLICIT_CLOCK_RATE         ${v_drv_ref_clk_freq_hz}
     set_instance_parameter_value  input_clk_bridge  NUM_CLOCK_OUTPUTS           1
-    # input_rst_bridge
-    set_instance_parameter_value  input_rst_bridge  ACTIVE_LOW_RESET            0
-    set_instance_parameter_value  input_rst_bridge  SYNCHRONOUS_EDGES           none
-    set_instance_parameter_value  input_rst_bridge  NUM_RESET_OUTPUTS           1
-    set_instance_parameter_value  input_rst_bridge  USE_RESET_REQUEST           0
-    set_instance_parameter_value  input_rst_bridge  SYNC_RESET                  0
+
     # input_rst_ctrl
-    set_instance_parameter_value  input_rst_ctrl    NUM_RESET_INPUTS            [expr {1 + ${v_remote_reset_en}}]
+    set_instance_parameter_value  input_rst_ctrl    NUM_RESET_INPUTS            [expr {${v_num_resets} + ${v_remote_reset_en}}]
     set_instance_parameter_value  input_rst_ctrl    MIN_RST_ASSERTION_TIME      {3}
     set_instance_parameter_value  input_rst_ctrl    OUTPUT_RESET_SYNC_EDGES     {deassert}
     set_instance_parameter_value  input_rst_ctrl    SYNC_DEPTH                  {2}
@@ -200,7 +206,23 @@ proc create_clock_subsystem {} {
     # input_clk_bridge
     add_connection input_clk_bridge.out_clk   input_rst_ctrl.clk
     # input_rst_bridge
-    add_connection input_rst_bridge.out_reset input_rst_ctrl.reset_in0
+
+    for {set rst_id 0} {${rst_id} < ${v_num_resets}} {incr rst_id} {
+
+        # input_rst_bridge
+        add_instance                  input_rst_${rst_id}_bridge  altera_reset_bridge
+        set_instance_parameter_value  input_rst_${rst_id}_bridge  ACTIVE_LOW_RESET            0
+        set_instance_parameter_value  input_rst_${rst_id}_bridge  SYNCHRONOUS_EDGES           none
+        set_instance_parameter_value  input_rst_${rst_id}_bridge  NUM_RESET_OUTPUTS           1
+        set_instance_parameter_value  input_rst_${rst_id}_bridge  USE_RESET_REQUEST           0
+        set_instance_parameter_value  input_rst_${rst_id}_bridge  SYNC_RESET                  0
+
+        add_connection input_rst_${rst_id}_bridge.out_reset input_rst_ctrl.reset_in${rst_id}
+
+        add_interface          i_rst_${rst_id}  reset       sink
+        set_interface_property i_rst_${rst_id}  export_of   input_rst_${rst_id}_bridge.in_reset
+
+    }
 
     # Create Exports
     # input_clk_bridge
@@ -208,7 +230,7 @@ proc create_clock_subsystem {} {
     set_interface_property i_ref_clk        export_of   input_clk_bridge.in_clk
     # input_rst_bridge
     add_interface          ia_board_reset   reset       sink
-    set_interface_property ia_board_reset   export_of   input_rst_bridge.in_reset
+    set_interface_property ia_board_reset   export_of   input_rst_0_bridge.in_reset
 
     # add optional JTAG master for remote reset
     if {${v_remote_reset_en}} {
@@ -217,13 +239,14 @@ proc create_clock_subsystem {} {
 
         # Create Connections
         # input_clk_bridge
-        add_connection input_clk_bridge.out_clk       input_jtag_reset.clk
+        add_connection input_clk_bridge.out_clk         input_jtag_reset.clk
         # input_rst_bridge
-        add_connection input_rst_bridge.out_reset     input_jtag_reset.clk_reset
-        # input_jtag_reset
-        add_connection input_jtag_reset.master_reset  input_rst_ctrl.reset_in1
-    }
+        add_connection input_rst_1_bridge.out_reset     input_jtag_reset.clk_reset
 
+        set v_jtag_rst_id                               [expr {${v_num_resets} + 1}]
+        # input_jtag_reset
+        add_connection input_jtag_reset.master_reset    input_rst_ctrl.reset_in${v_jtag_rst_id}
+    }
 
     #===============================================================================================
     # generation layer
@@ -255,6 +278,7 @@ proc create_clock_subsystem {} {
             set_instance_parameter_value  iopll_${v_pll_index}  gui_fix_vco_frequency         0
             set_instance_parameter_value  iopll_${v_pll_index}  gui_clock_name_global         0
             set_instance_parameter_value  iopll_${v_pll_index}  gui_clock_name_instantiation  0
+            set_instance_parameter_value  iopll_${v_pll_index}  gui_enable_permit_cal         ${v_iopll_en_permit_cal}
 
             # Settings tab (unused/default parameters commented out)
             set_instance_parameter_value  iopll_${v_pll_index}  gui_pll_bandwidth_preset  ${v_drv_pll_bandwidth_preset}
@@ -285,6 +309,11 @@ proc create_clock_subsystem {} {
             add_interface           o_iopll_${v_pll_index}_locked  conduit    end
             set_interface_property  o_iopll_${v_pll_index}_locked  export_of \
                                     iopll_locked_shim_${v_pll_index}.locked_out
+            if {${v_iopll_en_permit_cal} == 1} {
+
+            set_interface_property  permit_cal  export_of iopll_${v_pll_index}.permit_cal
+
+            }
 
             if {${v_export_to_top}} {
                 add_interface           o_iopll_${v_pll_index}_locked_export  conduit    end
@@ -311,7 +340,6 @@ proc create_clock_subsystem {} {
         set_instance_parameter_value  iopll_${v_pll_index}      gui_duty_cycle${v_pll_output_index} \
                                                                 ${v_clk_duty_cycle}
     }
-
 
     #===============================================================================================
     # iopll reset sync layer
@@ -360,7 +388,6 @@ proc create_clock_subsystem {} {
         add_connection  input_rst_ctrl.reset_out  reset_extender.in_reset
     }
 
-
     #===============================================================================================
     # local reset sync layer
 
@@ -403,7 +430,6 @@ proc create_clock_subsystem {} {
         add_connection  iopll_${v_pll_index}.outclk${v_pll_output_index}  ${v_name}_reset_sync.clock_in
         add_connection  reset_extender.out_reset                          ${v_name}_reset_sync.reset_in
     }
-
 
     #===============================================================================================
     # output layer
@@ -511,22 +537,34 @@ proc create_clock_subsystem {} {
     save_system
 }
 
-
 # insert the clock subsystem into the top level Platform Designer system, and add interfaces
 # to the boundary of the top level Platform Designer system
 proc edit_top_level_qsys {} {
-    set v_project_name      [get_shell_parameter PROJECT_NAME]
-    set v_project_path      [get_shell_parameter PROJECT_PATH]
-    set v_instance_name     [get_shell_parameter INSTANCE_NAME]
+    set v_project_name              [get_shell_parameter PROJECT_NAME]
+    set v_project_path              [get_shell_parameter PROJECT_PATH]
+    set v_instance_name             [get_shell_parameter INSTANCE_NAME]
 
-    set v_num_gen_clocks    [get_shell_parameter NUM_GEN_CLOCKS]
-    set v_export_to_top     [get_shell_parameter EXPORT_TO_TOP]
+    set v_num_gen_clocks            [get_shell_parameter NUM_GEN_CLOCKS]
+    set v_export_to_top             [get_shell_parameter EXPORT_TO_TOP]
 
-    set v_drv_max_iopll_clks  [get_shell_parameter DRV_MAX_IOPLL_CLKS]
-
+    set v_drv_max_iopll_clks        [get_shell_parameter DRV_MAX_IOPLL_CLKS]
+    set v_num_resets                [get_shell_parameter NUM_RESETS]
+    set v_iopll_en_permit_cal       [get_shell_parameter IOPLL_EN_PERMIT_CAL]
     load_system ${v_project_path}/rtl/${v_project_name}_qsys.qsys
 
     add_instance ${v_instance_name} ${v_instance_name}
+
+    if {${v_iopll_en_permit_cal} == 1} {
+        add_interface          ${v_instance_name}_permit_cal               reset       sink
+        set_interface_property ${v_instance_name}_permit_cal               export_of   ${v_instance_name}.permit_cal
+    }
+
+    for {set rst_id 1} {${rst_id} < ${v_num_resets}} {incr rst_id} {
+
+        add_interface          ${v_instance_name}_i_rst_${rst_id}          reset       sink
+        set_interface_property ${v_instance_name}_i_rst_${rst_id}          export_of   ${v_instance_name}.i_rst_${rst_id}
+
+    }
 
     if {${v_export_to_top}} {
         add_interface          ${v_instance_name}_o_ref_clk   clock       source
@@ -562,7 +600,6 @@ proc edit_top_level_qsys {} {
     save_system
 }
 
-
 # enable a subset of subsystem interfaces to be available for auto-connection
 # to other subsystems at the top qsys level
 proc add_auto_connections {} {
@@ -570,10 +607,17 @@ proc add_auto_connections {} {
     set v_num_gen_clocks      [get_shell_parameter NUM_GEN_CLOCKS]
 
     set v_drv_ref_clk_freq_hz [get_shell_parameter DRV_REF_CLK_FREQ_HZ]
-    set v_drv_max_iopll_clks    [get_shell_parameter DRV_MAX_IOPLL_CLKS]
+    set v_drv_max_iopll_clks  [get_shell_parameter DRV_MAX_IOPLL_CLKS]
+    set v_drv_ext_ref_clk_en  [get_shell_parameter DRV_EXT_REF_CLK_EN]
 
-    # input clock / reset (from board subsystem)
-    add_auto_connection ${v_instance_name} i_ref_clk       ref_clk
+    if {${v_drv_ext_ref_clk_en} == 0} {
+        # input clock from board subsystem
+        add_auto_connection ${v_instance_name} i_ref_clk       ref_clk
+    } else {
+        add_auto_connection ${v_instance_name} i_ref_clk       ref_clk_ext
+    }
+
+    # input  reset (from board subsystem)
     add_auto_connection ${v_instance_name} ia_board_reset  board_rst
 
     # output ref clock / reset
@@ -615,14 +659,15 @@ proc add_auto_connections {} {
     }
 }
 
-
 # insert lines of code into the top level hdl file
 proc edit_top_v_file {} {
-    set v_instance_name     [get_shell_parameter INSTANCE_NAME]
-    set v_num_gen_clocks    [get_shell_parameter NUM_GEN_CLOCKS]
-    set v_export_to_top     [get_shell_parameter EXPORT_TO_TOP]
+    set v_instance_name       [get_shell_parameter INSTANCE_NAME]
+    set v_num_gen_clocks      [get_shell_parameter NUM_GEN_CLOCKS]
+    set v_export_to_top       [get_shell_parameter EXPORT_TO_TOP]
 
     set v_drv_max_iopll_clks  [get_shell_parameter DRV_MAX_IOPLL_CLKS]
+    set v_num_resets          [get_shell_parameter NUM_RESETS]
+    set v_iopll_en_permit_cal [get_shell_parameter IOPLL_EN_PERMIT_CAL]
 
     if {${v_export_to_top}} {
         add_declaration_list wire ""  ${v_instance_name}_ref_clk
@@ -651,5 +696,15 @@ proc edit_top_v_file {} {
             add_qsys_inst_exports_list        ${v_instance_name}_o_${v_name}_rst_reset  ${v_instance_name}_${v_name}_rst
         }
     }
-}
 
+    for {set rst_id 1} {${rst_id} < ${v_num_resets}} {incr rst_id} {
+        add_declaration_list wire ""      ${v_instance_name}_i_rst_${rst_id}
+        add_qsys_inst_exports_list        ${v_instance_name}_i_rst_${rst_id}_reset    ${v_instance_name}_i_rst_${rst_id}
+    }
+
+    if {${v_iopll_en_permit_cal} == 1} {
+        add_declaration_list wire ""      permit_cal
+        add_qsys_inst_exports_list        ${v_instance_name}_permit_cal_export    permit_cal
+    }
+
+}
