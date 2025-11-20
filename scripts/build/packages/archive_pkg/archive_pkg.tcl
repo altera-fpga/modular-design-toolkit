@@ -265,7 +265,7 @@ namespace eval archive_pkg {
 
         foreach extension ${extensions} {
             set v_files [glob -nocomplain -directory ${directory} -type f -- ${extension}]
-            set v_output_files {} [list {*}${v_output_files} {*}${v_files}]
+            set v_output_files [list {*}${v_output_files} {*}${v_files}]
         }
 
         return ${v_output_files}

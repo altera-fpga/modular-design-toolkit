@@ -31,7 +31,8 @@ set_shell_parameter H2F_ADDRESS_WIDTH                   {38}
 set_shell_parameter HPS_AXI_CLK                         {100000000}
 
 set_shell_parameter MSGDMA_AGENT                        {}
-set_shell_parameter MSGDMA_IRQ_PRIORITY                 {X}
+set_shell_parameter MSGDMA_AGENT_ADDR_WIDTH             {0}
+set_shell_parameter MSGDMA_AGENT_CLK_FREQ               {200000000.0}
 
 set_shell_parameter F2H_EN                              {0}
 set_shell_parameter I2C0_EXT_EN                         {0}
@@ -111,14 +112,7 @@ proc derive_parameters {param_array} {
     }
 
     # organize external interrupts
-    set v_msgdma_en             [get_shell_parameter DRV_MSGDMA_EN]
-    set v_msgdma_irq_priority   [get_shell_parameter MSGDMA_IRQ_PRIORITY]
-
     set v_internal_priorities []
-
-    if {${v_msgdma_en}} {
-        lappend v_internal_priorities ${v_msgdma_irq_priority}
-    }
 
     if {[::irq_connect_pkg::check_duplicate_priorities ${v_internal_priorities}]} {
         puts "found duplicate internal priorities"
@@ -253,11 +247,9 @@ proc evaluate_terp {} {
 
 proc create_cpu_subsystem {} {
     set v_project_path            [get_shell_parameter PROJECT_PATH]
-    set v_family                  [get_shell_parameter FAMILY]
     set v_instance_name           [get_shell_parameter INSTANCE_NAME]
     set v_board_name              [get_shell_parameter DEVKIT]
 
-    set v_drv_ddr_preset          [get_shell_parameter DRV_DDR_PRESET]
     set v_drv_ddr_preset_file     [get_shell_parameter DRV_DDR_PRESET_FILE]
 
     set v_irq_bridge_width        [get_shell_parameter DRV_IRQ_BRIDGE_WIDTH]
@@ -275,7 +267,6 @@ proc create_cpu_subsystem {} {
     set v_num_gpi                 [get_shell_parameter NUM_GPI]
 
     set v_msgdma_en               [get_shell_parameter DRV_MSGDMA_EN]
-    set v_msgdma_irq_priority     [get_shell_parameter MSGDMA_IRQ_PRIORITY]
 
     set v_f2h_en                  [get_shell_parameter F2H_EN]
     set v_i2c0_ext_en             [get_shell_parameter I2C0_EXT_EN]
@@ -310,7 +301,6 @@ proc create_cpu_subsystem {} {
     add_instance  hps_axi_rst_bridge                        altera_reset_bridge
 
     add_instance  hps_h2f_user0_clk_bridge                  altera_clock_bridge
-
 
     if {${v_f2h_en}} {
         add_instance  fpga2hps_axi_bridge                     altera_axi_bridge
@@ -713,7 +703,6 @@ proc create_cpu_subsystem {} {
     set_instance_parameter_value hps_h2f_user0_clk_bridge EXPLICIT_CLOCK_RATE {100000000.0}
     set_instance_parameter_value hps_h2f_user0_clk_bridge NUM_CLOCK_OUTPUTS   {1}
 
-    set v_msgdma_en       [get_shell_parameter DRV_MSGDMA_EN]
 
     if {${v_msgdma_en} == 0} {
         # NOTE: temp IP to get around issues with f2sdram not being connected (and cannot be unused!)
@@ -737,6 +726,7 @@ proc create_cpu_subsystem {} {
         add_connection  temp_ext_hps_m_master.expanded_master agilex_hps.f2sdram
         add_connection  temp_hps_m.master                     temp_ext_hps_m_master.windowed_slave
     }
+
 
     ############################
     #### Create Connections ####
@@ -1003,9 +993,9 @@ proc create_cpu_subsystem {} {
 
             set_instance_parameter_value hps_axi_bridge_h2f USE_PIPELINE                          {1}
 
-            add_connection agilex_hps.hps2fpga            hps_axi_bridge_h2f.s0
-            set_connection_parameter_value                agilex_hps.hps2fpga/hps_axi_bridge_h2f.s0  baseAddress 0x000000
-            lock_avalon_base_address                      hps_axi_bridge_h2f.s0
+            add_connection agilex_hps.hps2fpga      hps_axi_bridge_h2f.s0
+            set_connection_parameter_value          agilex_hps.hps2fpga/hps_axi_bridge_h2f.s0  baseAddress 0x000000
+            lock_avalon_base_address                hps_axi_bridge_h2f.s0
 
             add_connection hps_axi_clk_bridge.out_clk     hps_axi_bridge_h2f.clk
             add_connection hps_axi_rst_bridge.out_reset   hps_axi_bridge_h2f.clk_reset
@@ -1051,27 +1041,27 @@ proc create_cpu_subsystem {} {
 
         add_instance  hps_fpga_emif_clk_bridge        altera_clock_bridge
         add_instance  hps_fpga_emif_rst_bridge        altera_reset_bridge
-        add_instance  hps_address_span_extender       altera_address_span_extender
+        add_instance  hps_fpga_emif_address_se        altera_address_span_extender
         add_instance  hps_fpga_emif_cc_bridge         mm_ccb
 
-        set_instance_parameter_value      hps_fpga_emif_clk_bridge      EXPLICIT_CLOCK_RATE   {200000000.0}
-        set_instance_parameter_value      hps_fpga_emif_clk_bridge      NUM_CLOCK_OUTPUTS     {1}
+        set_instance_parameter_value  hps_fpga_emif_clk_bridge    EXPLICIT_CLOCK_RATE   {200000000.0}
+        set_instance_parameter_value  hps_fpga_emif_clk_bridge    NUM_CLOCK_OUTPUTS     {1}
 
-        set_instance_parameter_value      hps_fpga_emif_rst_bridge      ACTIVE_LOW_RESET      {0}
-        set_instance_parameter_value      hps_fpga_emif_rst_bridge      NUM_RESET_OUTPUTS     {1}
-        set_instance_parameter_value      hps_fpga_emif_rst_bridge      SYNCHRONOUS_EDGES     {deassert}
-        set_instance_parameter_value      hps_fpga_emif_rst_bridge      SYNC_RESET            {0}
-        set_instance_parameter_value      hps_fpga_emif_rst_bridge      USE_RESET_REQUEST     {0}
+        set_instance_parameter_value  hps_fpga_emif_rst_bridge    ACTIVE_LOW_RESET      {0}
+        set_instance_parameter_value  hps_fpga_emif_rst_bridge    NUM_RESET_OUTPUTS     {1}
+        set_instance_parameter_value  hps_fpga_emif_rst_bridge    SYNCHRONOUS_EDGES     {deassert}
+        set_instance_parameter_value  hps_fpga_emif_rst_bridge    SYNC_RESET            {0}
+        set_instance_parameter_value  hps_fpga_emif_rst_bridge    USE_RESET_REQUEST     {0}
 
-        set_instance_parameter_value  hps_address_span_extender   BURSTCOUNT_WIDTH      {1}
-        set_instance_parameter_value  hps_address_span_extender   DATA_WIDTH            {128}
-        set_instance_parameter_value  hps_address_span_extender   ENABLE_SLAVE_PORT     {1}
-        set_instance_parameter_value  hps_address_span_extender   MASTER_ADDRESS_DEF    {0}
-        set_instance_parameter_value  hps_address_span_extender   MASTER_ADDRESS_WIDTH  ${v_fpga_emif_host_addr_width}
-        set_instance_parameter_value  hps_address_span_extender   MAX_PENDING_READS     {1}
-        set_instance_parameter_value  hps_address_span_extender   SLAVE_ADDRESS_WIDTH   ${v_fpga_emif_agent_addr_width}
-        set_instance_parameter_value  hps_address_span_extender   SUB_WINDOW_COUNT      {1}
-        set_instance_parameter_value  hps_address_span_extender   SYNC_RESET            {0}
+        set_instance_parameter_value  hps_fpga_emif_address_se    BURSTCOUNT_WIDTH      {1}
+        set_instance_parameter_value  hps_fpga_emif_address_se    DATA_WIDTH            {128}
+        set_instance_parameter_value  hps_fpga_emif_address_se    ENABLE_SLAVE_PORT     {1}
+        set_instance_parameter_value  hps_fpga_emif_address_se    MASTER_ADDRESS_DEF    {0}
+        set_instance_parameter_value  hps_fpga_emif_address_se    MASTER_ADDRESS_WIDTH  ${v_fpga_emif_host_addr_width}
+        set_instance_parameter_value  hps_fpga_emif_address_se    MAX_PENDING_READS     {1}
+        set_instance_parameter_value  hps_fpga_emif_address_se    SLAVE_ADDRESS_WIDTH   ${v_fpga_emif_agent_addr_width}
+        set_instance_parameter_value  hps_fpga_emif_address_se    SUB_WINDOW_COUNT      {1}
+        set_instance_parameter_value  hps_fpga_emif_address_se    SYNC_RESET            {0}
 
         set_instance_parameter_value  hps_fpga_emif_cc_bridge     ADDRESS_UNITS          {SYMBOLS}
         set_instance_parameter_value  hps_fpga_emif_cc_bridge     ADDRESS_WIDTH          ${v_fpga_emif_host_addr_width}
@@ -1090,16 +1080,16 @@ proc create_cpu_subsystem {} {
 
         add_connection  hps_fpga_emif_rst_bridge.out_reset         hps_fpga_emif_cc_bridge.m0_reset
 
-        add_connection   hps_axi_clk_bridge.out_clk                  hps_address_span_extender.clock
+        add_connection   hps_axi_clk_bridge.out_clk                  hps_fpga_emif_address_se.clock
         add_connection   hps_axi_clk_bridge.out_clk                  hps_fpga_emif_cc_bridge.s0_clk
 
-        add_connection   hps_axi_rst_bridge.out_reset                hps_address_span_extender.reset
+        add_connection   hps_axi_rst_bridge.out_reset                hps_fpga_emif_address_se.reset
         add_connection   hps_axi_rst_bridge.out_reset                hps_fpga_emif_cc_bridge.s0_reset
 
-        add_connection   hps_address_span_extender.expanded_master   hps_fpga_emif_cc_bridge.s0
+        add_connection   hps_fpga_emif_address_se.expanded_master    hps_fpga_emif_cc_bridge.s0
 
-        add_connection   agilex_hps.hps2fpga                         hps_address_span_extender.windowed_slave
-        add_connection   agilex_hps.hps2fpga                         hps_address_span_extender.cntl
+        add_connection   agilex_hps.hps2fpga                         hps_fpga_emif_address_se.windowed_slave
+        add_connection   agilex_hps.hps2fpga                         hps_fpga_emif_address_se.cntl
 
         add_interface           fpga_emif_clock   clock         sink
         set_interface_property  fpga_emif_clock   EXPORT_OF     hps_fpga_emif_clk_bridge.in_clk
@@ -1110,32 +1100,32 @@ proc create_cpu_subsystem {} {
         add_interface           fpga_emif_avmm_m0   avalon      host
         set_interface_property  fpga_emif_avmm_m0   EXPORT_OF   hps_fpga_emif_cc_bridge.m0
 
-        set_connection_parameter_value agilex_hps.hps2fpga/hps_address_span_extender.windowed_slave \
+        set_connection_parameter_value agilex_hps.hps2fpga/hps_fpga_emif_address_se.windowed_slave \
                     baseAddress ${v_fpga_emif_window_base_address}
-        set_connection_parameter_value agilex_hps.hps2fpga/hps_address_span_extender.cntl \
+        set_connection_parameter_value agilex_hps.hps2fpga/hps_fpga_emif_address_se.cntl \
                     baseAddress ${v_fpga_emif_window_ctrl_base_address}
 
-        lock_avalon_base_address hps_address_span_extender.windowed_slave
-        lock_avalon_base_address hps_address_span_extender.cntl
+        lock_avalon_base_address hps_fpga_emif_address_se.windowed_slave
+        lock_avalon_base_address hps_fpga_emif_address_se.cntl
 
         # increase performance
-        set_connection_parameter_value agilex_hps.hps2fpga/hps_address_span_extender.cntl \
+        set_connection_parameter_value agilex_hps.hps2fpga/hps_fpga_emif_address_se.cntl \
                         qsys_mm.burstAdapterImplementation {PER_BURST_TYPE_CONVERTER}
-        set_connection_parameter_value agilex_hps.hps2fpga/hps_address_span_extender.windowed_slave \
+        set_connection_parameter_value agilex_hps.hps2fpga/hps_fpga_emif_address_se.windowed_slave \
                         qsys_mm.burstAdapterImplementation {PER_BURST_TYPE_CONVERTER}
-        set_connection_parameter_value hps_address_span_extender.expanded_master/hps_fpga_emif_cc_bridge.s0 \
+        set_connection_parameter_value hps_fpga_emif_address_se.expanded_master/hps_fpga_emif_cc_bridge.s0 \
                         qsys_mm.burstAdapterImplementation {PER_BURST_TYPE_CONVERTER}
         set_domain_assignment agilex_hps.hps2fpga qsys_mm.burstAdapterImplementation PER_BURST_TYPE_CONVERTER
-        set_domain_assignment hps_address_span_extender.expanded_master \
+        set_domain_assignment hps_fpga_emif_address_se.expanded_master \
                         qsys_mm.burstAdapterImplementation PER_BURST_TYPE_CONVERTER
         set_postadaptation_assignment mm_interconnect_2|cmd_mux_002 qsys_mm.postTransform.pipelineCount 1
         set_postadaptation_assignment mm_interconnect_2|\
-                        hps_address_span_extender_cntl_burst_adapter.source0/\
-                        hps_address_span_extender_cntl_agent.cp \
+                        hps_fpga_emif_address_se_cntl_burst_adapter.source0/\
+                        hps_fpga_emif_address_se_cntl_agent.cp \
                         qsys_mm.postTransform.pipelineCount 1
         set_postadaptation_assignment mm_interconnect_2|\
-                        hps_address_span_extender_windowed_slave_burst_adapter.source0/\
-                        hps_address_span_extender_windowed_slave_agent.cp \
+                        hps_fpga_emif_address_se_windowed_slave_burst_adapter.source0/\
+                        hps_fpga_emif_address_se_windowed_slave_agent.cp \
                         qsys_mm.postTransform.pipelineCount 1
     }
 
@@ -1185,38 +1175,57 @@ proc create_cpu_subsystem {} {
             set v_priority [lindex ${v_irq_bridge_priorities} ${v_i}]
 
             add_connection  agilex_hps.fpga2hps_interrupt_irq0   irq_bridge.sender${v_i}_irq
-            set_connection_parameter_value  agilex_hps.fpga2hps_interrupt_irq0/irq_bridge.sender${v_i}_irq irqNumber $v_priority
+            set_connection_parameter_value  agilex_hps.fpga2hps_interrupt_irq0/irq_bridge.sender${v_i}_irq \
+                                                                                      irqNumber ${v_priority}
         }
 
         add_interface          ia_cpu_irq_receiver     interrupt  receiver
         set_interface_property ia_cpu_irq_receiver     export_of  irq_bridge.receiver_irq
     }
 
-    # add modular-scatter-gather DMA
+    # modular-scatter-gather DMA
     if {${v_msgdma_en}} {
+        set v_MSGDMA_AGENT_ADDR_WIDTH          [get_shell_parameter MSGDMA_AGENT_ADDR_WIDTH]
+        set v_MSGDMA_AGENT_CLK_FREQ            [get_shell_parameter MSGDMA_AGENT_CLK_FREQ]
+
+        # Instances #
+        add_instance  msgdma_fpga_emif_clk          altera_clock_bridge
+        add_instance  msgdma_fpga_emif_rst          altera_reset_bridge
         add_instance  msgdma_256b                   altera_msgdma
         add_instance  limiter_removal_256b          msgdma2axi4_256
         add_instance  f2sdram_adapt_256b            f2sdram_adapter_256
-        add_instance  msgdma_fpga_emif_cc_bridge    mm_ccb
+        add_instance  msgdma_fpga_emif              mm_ccb
+
+        # Parameters #
+        # msgdma_fpga_emif_clk
+        set_instance_parameter_value      msgdma_fpga_emif_clk      EXPLICIT_CLOCK_RATE   ${v_MSGDMA_AGENT_CLK_FREQ}
+        set_instance_parameter_value      msgdma_fpga_emif_clk      NUM_CLOCK_OUTPUTS     {1}
+
+        # msgdma_fpga_emif_rst
+        set_instance_parameter_value      msgdma_fpga_emif_rst      ACTIVE_LOW_RESET      {0}
+        set_instance_parameter_value      msgdma_fpga_emif_rst      NUM_RESET_OUTPUTS     {1}
+        set_instance_parameter_value      msgdma_fpga_emif_rst      SYNCHRONOUS_EDGES     {deassert}
+        set_instance_parameter_value      msgdma_fpga_emif_rst      SYNC_RESET            {0}
+        set_instance_parameter_value      msgdma_fpga_emif_rst      USE_RESET_REQUEST     {0}
 
         # msgdma_256b
-        set_instance_parameter_value	msgdma_256b         BURST_ENABLE                      {1}
-        set_instance_parameter_value	msgdma_256b         BURST_WRAPPING_SUPPORT            {0}
-        set_instance_parameter_value	msgdma_256b         CHANNEL_ENABLE                    {0}
-        set_instance_parameter_value	msgdma_256b         CHANNEL_WIDTH                     {8}
-        set_instance_parameter_value	msgdma_256b         DATA_FIFO_DEPTH                   {512}
-        set_instance_parameter_value	msgdma_256b         DATA_WIDTH                        {256}
-        set_instance_parameter_value	msgdma_256b         DESCRIPTOR_FIFO_DEPTH             {128}
+        set_instance_parameter_value  msgdma_256b         BURST_ENABLE                      {1}
+        set_instance_parameter_value  msgdma_256b         BURST_WRAPPING_SUPPORT            {0}
+        set_instance_parameter_value  msgdma_256b         CHANNEL_ENABLE                    {0}
+        set_instance_parameter_value  msgdma_256b         CHANNEL_WIDTH                     {8}
+        set_instance_parameter_value  msgdma_256b         DATA_FIFO_DEPTH                   {16}
+        set_instance_parameter_value  msgdma_256b         DATA_WIDTH                        {256}
+        set_instance_parameter_value  msgdma_256b         DESCRIPTOR_FIFO_DEPTH             {8}
         set_instance_parameter_value  msgdma_256b         ENHANCED_FEATURES                 {1}
         set_instance_parameter_value  msgdma_256b         ERROR_ENABLE                      {0}
         set_instance_parameter_value  msgdma_256b         ERROR_WIDTH                       {8}
         set_instance_parameter_value  msgdma_256b         EXPOSE_ST_PORT                    {0}
         set_instance_parameter_value  msgdma_256b         FIX_ADDRESS_WIDTH                 {64}
-        set_instance_parameter_value  msgdma_256b         MAX_BURST_COUNT                   {32}
-        set_instance_parameter_value  msgdma_256b         MAX_BYTE                          {1073741824}
+        set_instance_parameter_value  msgdma_256b         MAX_BURST_COUNT                   {2}
+        set_instance_parameter_value  msgdma_256b         MAX_BYTE                          {4194304}
         set_instance_parameter_value  msgdma_256b         MAX_STRIDE                        {1}
         set_instance_parameter_value  msgdma_256b         MODE                              {0}
-        set_instance_parameter_value  msgdma_256b         NO_BYTEENABLES                    {0}
+        set_instance_parameter_value  msgdma_256b         NO_BYTEENABLES                    {1}
         set_instance_parameter_value  msgdma_256b         PACKET_ENABLE                     {0}
         set_instance_parameter_value  msgdma_256b         PREFETCHER_DATA_WIDTH             {32}
         set_instance_parameter_value  msgdma_256b         PREFETCHER_ENABLE                 {0}
@@ -1229,69 +1238,95 @@ proc create_cpu_subsystem {} {
         set_instance_parameter_value  msgdma_256b         USE_FIX_ADDRESS_WIDTH             {1}
         set_instance_parameter_value  msgdma_256b         WRITE_RESPONSE_ENABLE             {0}
 
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  ADDRESS_UNITS           {SYMBOLS}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  ADDRESS_WIDTH           $v_fpga_emif_host_addr_width
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  COMMAND_FIFO_DEPTH      {256}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  DATA_WIDTH              {256}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  MASTER_SYNC_DEPTH       {2}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  MAX_BURST_SIZE          {32}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  RESPONSE_FIFO_DEPTH     {256}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  SLAVE_SYNC_DEPTH        {2}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  SYMBOL_WIDTH            {8}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  SYNC_RESET              {0}
-        set_instance_parameter_value  msgdma_fpga_emif_cc_bridge  USE_AUTO_ADDRESS_WIDTH  {0}
+        # msgdma_fpga_emif
+        set_instance_parameter_value  msgdma_fpga_emif    ADDRESS_UNITS           {SYMBOLS}
+        set_instance_parameter_value  msgdma_fpga_emif    ADDRESS_WIDTH           ${v_MSGDMA_AGENT_ADDR_WIDTH}
+        set_instance_parameter_value  msgdma_fpga_emif    COMMAND_FIFO_DEPTH      {2}
+        set_instance_parameter_value  msgdma_fpga_emif    DATA_WIDTH              {256}
+        set_instance_parameter_value  msgdma_fpga_emif    MASTER_SYNC_DEPTH       {2}
+        set_instance_parameter_value  msgdma_fpga_emif    MAX_BURST_SIZE          {2}
+        set_instance_parameter_value  msgdma_fpga_emif    RESPONSE_FIFO_DEPTH     {4}
+        set_instance_parameter_value  msgdma_fpga_emif    SLAVE_SYNC_DEPTH        {2}
+        set_instance_parameter_value  msgdma_fpga_emif    SYMBOL_WIDTH            {8}
+        set_instance_parameter_value  msgdma_fpga_emif    SYNC_RESET              {0}
+        set_instance_parameter_value  msgdma_fpga_emif    USE_AUTO_ADDRESS_WIDTH  {0}
 
-        add_connection  hps_axi_clk_bridge.out_clk        msgdma_256b.clock
-        add_connection  hps_axi_clk_bridge.out_clk        limiter_removal_256b.clock
-        add_connection  hps_axi_clk_bridge.out_clk        f2sdram_adapt_256b.clock
-        add_connection  hps_axi_clk_bridge.out_clk        msgdma_fpga_emif_cc_bridge.s0_clk
+        # Connections #
+        # msgdma_fpga_emif_clk
+        add_connection  msgdma_fpga_emif_clk.out_clk          msgdma_fpga_emif_rst.clk
+        add_connection  msgdma_fpga_emif_clk.out_clk          msgdma_fpga_emif.m0_clk
 
-        add_connection  hps_axi_rst_bridge.out_reset      msgdma_256b.reset_n
-        add_connection  hps_axi_rst_bridge.out_reset      limiter_removal_256b.reset
-        add_connection  hps_axi_rst_bridge.out_reset      f2sdram_adapt_256b.reset
-        add_connection  hps_axi_rst_bridge.out_reset      msgdma_fpga_emif_cc_bridge.s0_reset
+        # msgdma_fpga_emif_rst
+        add_connection  msgdma_fpga_emif_rst.out_reset        msgdma_fpga_emif.m0_reset
 
-        add_connection  hps_fpga_emif_clk_bridge.out_clk           msgdma_fpga_emif_cc_bridge.m0_clk
-        add_connection  hps_fpga_emif_rst_bridge.out_reset         msgdma_fpga_emif_cc_bridge.m0_reset
+        # hps_axi_clk_bridge
+        add_connection  hps_axi_clk_bridge.out_clk            msgdma_256b.clock
+        add_connection  hps_axi_clk_bridge.out_clk            limiter_removal_256b.clock
+        add_connection  hps_axi_clk_bridge.out_clk            f2sdram_adapt_256b.clock
+        add_connection  hps_axi_clk_bridge.out_clk            msgdma_fpga_emif.s0_clk
 
-        add_connection  agilex_hps.hps2fpga               msgdma_256b.csr
-        add_connection  agilex_hps.hps2fpga               msgdma_256b.descriptor_slave
-        add_connection  agilex_hps.fpga2hps_interrupt	    msgdma_256b.csr_irq
+        # hps_axi_rst_bridge
+        add_connection  hps_axi_rst_bridge.out_reset          msgdma_256b.reset_n
+        add_connection  hps_axi_rst_bridge.out_reset          limiter_removal_256b.reset
+        add_connection  hps_axi_rst_bridge.out_reset          f2sdram_adapt_256b.reset
+        add_connection  hps_axi_rst_bridge.out_reset          msgdma_fpga_emif.s0_reset
 
-        add_connection  msgdma_256b.mm_read               limiter_removal_256b.s0
-        add_connection  msgdma_256b.mm_read               msgdma_fpga_emif_cc_bridge.s0
-        add_connection  msgdma_256b.mm_write              limiter_removal_256b.s1
-        add_connection  msgdma_256b.mm_write              msgdma_fpga_emif_cc_bridge.s0
+        # agilex_hps
+        add_connection  agilex_hps.hps2fpga                   msgdma_256b.csr
+        add_connection  agilex_hps.hps2fpga                   msgdma_256b.descriptor_slave
+        add_connection  agilex_hps.fpga2hps_interrupt_irq1    msgdma_256b.csr_irq
+        add_connection  agilex_hps.h2f_reset                  msgdma_256b.reset_n
+        add_connection  agilex_hps.h2f_reset                  limiter_removal_256b.reset
+        add_connection  agilex_hps.h2f_reset                  f2sdram_adapt_256b.reset
+        add_connection  agilex_hps.h2f_reset                  msgdma_fpga_emif.s0_reset
 
-        add_connection  limiter_removal_256b.m0           f2sdram_adapt_256b.axi4_sub
-        add_connection  f2sdram_adapt_256b.axi4_man       agilex_hps.f2sdram
+        # msgdma_256b
+        add_connection  msgdma_256b.mm_read                   limiter_removal_256b.s0
+        add_connection  msgdma_256b.mm_write                  limiter_removal_256b.s1
+        add_connection  msgdma_256b.mm_read                   msgdma_fpga_emif.s0
+        add_connection  msgdma_256b.mm_write                  msgdma_fpga_emif.s0
 
-        add_connection  agilex_hps.h2f_reset              msgdma_256b.reset_n
-        add_connection  agilex_hps.h2f_reset              limiter_removal_256b.reset
-        add_connection  agilex_hps.h2f_reset              f2sdram_adapt_256b.reset
-        add_connection  agilex_hps.h2f_reset              msgdma_fpga_emif_cc_bridge.s0_reset
+        # limiter_removal_256b
+        add_connection  limiter_removal_256b.m0               f2sdram_adapt_256b.axi4_sub
+
+        # f2sdram_adapt_256b
+        add_connection  f2sdram_adapt_256b.axi4_man           agilex_hps.f2sdram
+
+        # Exports #
+        add_interface           msgdma_fpga_emif_clock   clock         sink
+        set_interface_property  msgdma_fpga_emif_clock   EXPORT_OF     msgdma_fpga_emif_clk.in_clk
+
+        add_interface           msgdma_fpga_emif_reset   reset         sink
+        set_interface_property  msgdma_fpga_emif_reset   EXPORT_OF     msgdma_fpga_emif_rst.in_reset
 
         add_interface           msgdma_fpga_emif_avmm_m0    avalon      host
-        set_interface_property  msgdma_fpga_emif_avmm_m0    EXPORT_OF   msgdma_fpga_emif_cc_bridge.m0
+        set_interface_property  msgdma_fpga_emif_avmm_m0    EXPORT_OF   msgdma_fpga_emif.m0
 
-        set_connection_parameter_value msgdma_256b.mm_read/limiter_removal_256b.s0         baseAddress "0x000000000000"
-        set_connection_parameter_value msgdma_256b.mm_write/limiter_removal_256b.s1        baseAddress "0x000000000000"
-        set_connection_parameter_value limiter_removal_256b.m0/f2sdram_adapt_256b.axi4_sub baseAddress "0x000000000000"
-        set_connection_parameter_value msgdma_256b.mm_read/msgdma_fpga_emif_cc_bridge.s0   baseAddress "0x000200000000"
-        set_connection_parameter_value msgdma_256b.mm_write/msgdma_fpga_emif_cc_bridge.s0  baseAddress "0x000200000000"
+        # Addresses #
+        set_connection_parameter_value msgdma_256b.mm_read/limiter_removal_256b.s0 \
+                                                                              baseAddress "0x000000000000"
+        set_connection_parameter_value msgdma_256b.mm_write/limiter_removal_256b.s1 \
+                                                                              baseAddress "0x000000000000"
+        set_connection_parameter_value limiter_removal_256b.m0/f2sdram_adapt_256b.axi4_sub \
+                                                                              baseAddress "0x000000000000"
+        set_connection_parameter_value msgdma_256b.mm_read/msgdma_fpga_emif.s0 \
+                                                                              baseAddress "0x001000000000"
+        set_connection_parameter_value msgdma_256b.mm_write/msgdma_fpga_emif.s0 \
+                                                                              baseAddress "0x001000000000"
+        set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b.csr \
+                                                                              baseAddress "0x00800000"
+        set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b.descriptor_slave \
+                                                                              baseAddress "0x00800020"
 
-        set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b.csr                 baseAddress "0x00800000"
-        set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b.descriptor_slave    baseAddress "0x00800020"
-
+        lock_avalon_base_address  limiter_removal_256b.s0
+        lock_avalon_base_address  limiter_removal_256b.s1
+        lock_avalon_base_address  f2sdram_adapt_256b.axi4_sub
+        lock_avalon_base_address  msgdma_fpga_emif.s0
         lock_avalon_base_address  msgdma_256b.csr
         lock_avalon_base_address  msgdma_256b.descriptor_slave
     }
 
-
-    #############################
     ##### Sync / Validation #####
-    #############################
-
     sync_sysinfo_parameters
     save_system
 }
@@ -1436,7 +1471,10 @@ proc add_auto_connections {} {
 
     set v_fpga_emif_enabled   [get_shell_parameter FPGA_EMIF_ENABLED]
 
-    if {${v_drv_enable_h2f} && ${v_h2f_is_axi} == 0 && ${v_drv_enable_h2f_lw} && ${v_h2f_lw_is_axi} == 0} {
+    set v_drv_msgdma_en       [get_shell_parameter DRV_MSGDMA_EN]
+    set v_msgdma_agent        [get_shell_parameter MSGDMA_AGENT]
+
+    if {(${v_drv_enable_h2f} ) && (${v_h2f_is_axi} == 0) && (${v_drv_enable_h2f_lw} ) && (${v_h2f_lw_is_axi} == 0)} {
         set v_full_avmm_host [list [list auto X]]
         set v_lw_avmm_host   [list [list auto X]]
 
@@ -1471,12 +1509,10 @@ proc add_auto_connections {} {
         add_auto_connection ${v_instance_name} fpga_emif_avmm_m0  "emif_user_data"
     }
 
-    set v_drv_msgdma_en 		[get_shell_parameter DRV_MSGDMA_EN]
-
-    if {$v_drv_msgdma_en} {
-        set v_msgdma_agent  [get_shell_parameter MSGDMA_AGENT]
-
-        add_auto_connection ${v_instance_name} msgdma_fpga_emif_avmm_m0 "${v_msgdma_agent}_user_data"
+    if {${v_drv_msgdma_en}} {
+        add_auto_connection ${v_instance_name} msgdma_fpga_emif_clock       "${v_msgdma_agent}_user_clk"
+        add_auto_connection ${v_instance_name} msgdma_fpga_emif_reset       "${v_msgdma_agent}_user_rst"
+        add_auto_connection ${v_instance_name} msgdma_fpga_emif_avmm_m0     "${v_msgdma_agent}_user_data"
     }
 }
 

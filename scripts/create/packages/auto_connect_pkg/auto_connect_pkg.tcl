@@ -153,7 +153,7 @@ namespace eval auto_connect_pkg {
 
                         set v_input_type  [lindex ${v_input} 3]
                         set v_output_type [lindex ${v_output} 3]
-                        set v_type_keys   [list avalon altera_axi4]
+                        set v_type_keys   [list avalon altera_axi4 apb]
 
                         # check the type matches (or check for special case AXI/AVMM)
                         if {${v_output_type} == ${v_input_type}} {

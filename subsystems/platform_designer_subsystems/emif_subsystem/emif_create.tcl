@@ -41,5 +41,5 @@ if {${v_board_name} == "A10_1150_DEVKIT"} {
 } elseif {${v_board_name} == "AGX_5E_MACNICA_Sulfur_Devkit"} {
     source ${v_shell_design_root}/emif_subsystem/variants/AGX_5E_MACNICA_Sulfur_Devkit/emif_agx_create.tcl
 } else {
-    send_message ERROR "devkit ${v_board_name} not supported"
+    return -code error "devkit ${v_board_name} not supported (EMIF Subsystem)"
 }
