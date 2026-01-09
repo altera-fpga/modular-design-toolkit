@@ -24,10 +24,10 @@ The Modular Design Toolkit provides support for the following:
 
 This release of the Modular Design Toolkit requires the following software and versions (in Linux):
 
-- Altera® Quartus® Prime Pro version (25.1 or above), including open-source tools to
+- Altera® Quartus® Prime Pro version 25.3, including open-source tools to
    compile software targeting NiosV soft-processors.
-- Altera® VIP Suite version 25.1 - (optional – only needed for designs with video
-   processing IP from Altera® VIP suite)
+- Altera® VVP Suite version 25.3 - (optional – only needed for designs with video
+   processing IP from Altera® VVP suite)
 
 ### Hardware Requirements
 
@@ -47,7 +47,7 @@ script and an XML file.
 
 ```bash
    cd <workspace> 
-   git clone -b <TAG> https://github.com/altera-fpga/modular-design-toolkit.git modular_design_toolkit
+   git clone -b <QUARTUS_REL_TAG> https://github.com/altera-fpga/modular-design-toolkit.git modular_design_toolkit
    mkdir my_design
    cd my_design
    vi my_design.xml
@@ -60,7 +60,7 @@ script and an XML file.
         <DEVKIT>AGX_5E_Modular_Devkit</DEVKIT>
         <FAMILY>Agilex 5</FAMILY>
         <DEVICE>A5ED065BB32AE6SR0</DEVICE>
-        <VERSION>24.1</VERSION>
+        <VERSION>25.3</VERSION>
         <SUBSYSTEM type="clock" name="clock_subsystem">
             <NUM_GEN_CLOCKS>0</NUM_GEN_CLOCKS>
         </SUBSYSTEM>
@@ -162,7 +162,7 @@ the Platform Designer and Quartus® GUIs.
 
 From either method, once the compilation is finished a new FPGA programming file will be generated under \<project>/quartus/output_files.
 
-<span style="color:red">**Note:**</span> **this example contains an instance of the Agilex5 HPS, to boot you need to create an RBF/JIC file pair and an SD card image. Please refer to the Linux Build Examples in this [link](https://altera-fpga.github.io/rel-25.1/embedded-designs/agilex-5/e-series/modular/boot-examples/ug-linux-boot-agx5e-modular/) or the GSRD User Guide in this [link](https://altera-fpga.github.io/rel-25.1/embedded-designs/agilex-5/e-series/modular/gsrd/ug-gsrd-agx5e-modular/).**
+<span style="color:red">**Note:**</span> **this example contains an instance of the Agilex5 HPS, to boot you need to create an RBF/JIC file pair and an SD card image. Please refer to the Linux Build Examples in this [link](https://altera-fpga.github.io/rel-25.3/embedded-designs/agilex-5/e-series/modular/boot-examples/ug-linux-boot-agx5e-modular/) or the GSRD User Guide in this [link](https://altera-fpga.github.io/rel-25.3/embedded-designs/agilex-5/e-series/modular/gsrd/ug-gsrd-agx5e-modular/).**
 <br><br>
 
 ## Repository Structure
