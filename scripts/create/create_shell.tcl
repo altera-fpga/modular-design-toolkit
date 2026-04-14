@@ -686,13 +686,22 @@ namespace eval create_shell {
             file copy -force ${v_design_sdc} ${v_sdc_directory}
         }
 
+        set v_design_da_drc [file join ${v_design_dir_path} design.dawf]
+        set v_da_drc_directory [file join ${v_project_path} quartus]
+
+        if {[file exists ${v_design_da_drc}] == 1} {
+            file copy -force ${v_design_da_drc} ${v_da_drc_directory}
+        }
+
         set v_qsf_files_list {}
         set v_sdc_files_list {}
+        set v_da_drc_files_list {}
 
         foreach v_subdir ${::create_shell::v_split_directories} {
 
-            set v_qsf_directory [file join ${v_project_path} quartus ${v_subdir}]
-            set v_sdc_directory [file join ${v_project_path} sdc ${v_subdir}]
+            set v_qsf_directory    [file join ${v_project_path} quartus ${v_subdir}]
+            set v_sdc_directory    [file join ${v_project_path} sdc ${v_subdir}]
+            set v_da_drc_directory [file join ${v_project_path} quartus ]
 
             if {[file exists ${v_qsf_directory}] == 1} {
                 set v_temporary_list [fileutil::findByPattern ${v_qsf_directory} -glob -- *.qsf]
@@ -702,6 +711,11 @@ namespace eval create_shell {
             if {[file exists ${v_sdc_directory}] == 1} {
                 set v_temporary_list [fileutil::findByPattern ${v_sdc_directory} -glob -- *.sdc]
                 set v_sdc_files_list [concat ${v_sdc_files_list} ${v_temporary_list}]
+            }
+
+            if {[file exists ${v_da_drc_directory}] == 1} {
+                set v_temporary_list [fileutil::findByPattern ${v_da_drc_directory} -glob -- *.dawf]
+                set v_da_drc_files_list [concat ${v_da_drc_files_list} ${v_temporary_list}]
             }
 
         }
@@ -723,6 +737,14 @@ namespace eval create_shell {
         foreach v_sdc_file ${v_sdc_files_list} {
             set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_sdc_file}]
             set v_result [catch {set_global_assignment -name SDC_FILE ${v_relative_file}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+        }
+
+        foreach v_da_drc_file ${v_da_drc_files_list} {
+            set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_da_drc_file}]
+            set v_result [catch {set_global_assignment -name DESIGN_ASSISTANT_WAIVER_FILE ${v_relative_file}} v_result_text]
             if {${v_result} != 0} {
                 return -code ${v_result} ${v_result_text}
             }

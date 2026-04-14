@@ -1,5 +1,5 @@
 ###################################################################################
-# Copyright (C) 2025 Altera Corporation
+# Copyright (C) Altera Corporation
 #
 # This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
@@ -382,7 +382,7 @@ proc create_cpu_subsystem {} {
     if {${v_board_name} == "AGX_5E_Si_Devkit"} {
         set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I3C1:SDA I3C1:SCL HCLK:HPS_OSC_CLK GPIO0:IO11 USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
     } elseif {${v_board_name} == "AGX_5E_Modular_Devkit"} {
-        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I2C_EMAC1:SDA I2C_EMAC1:SCL GPIO0:IO10 HCLK:HPS_OSC_CLK USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
+        set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 NONE UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I2C_EMAC1:SDA I2C_EMAC1:SCL GPIO0:IO10 HCLK:HPS_OSC_CLK USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
     } else {
         set_instance_parameter_value agilex_hps HPS_IO_Enable {GPIO0:IO0 GPIO0:IO1 UART0:TX UART0:RX EMAC2:PPS2 EMAC2:PPSTRIG2 MDIO2:MDIO MDIO2:MDC I3C1:SDA I3C1:SCL HCLK:HPS_OSC_CLK GPIO0:IO11 USB1:CLK USB1:STP USB1:DIR USB1:DATA0 USB1:DATA1 USB1:NXT USB1:DATA2 USB1:DATA3 USB1:DATA4 USB1:DATA5 USB1:DATA6 USB1:DATA7 SDMMC:DATA0 SDMMC:DATA1 SDMMC:CCLK GPIO1:IO3 GPIO1:IO4 SDMMC:DATA2 SDMMC:DATA3 SDMMC:CMD JTAG:TCK JTAG:TMS JTAG:TDO JTAG:TDI EMAC2:TX_CLK EMAC2:TX_CTL EMAC2:RX_CLK EMAC2:RX_CTL EMAC2:TXD0 EMAC2:TXD1 EMAC2:RXD0 EMAC2:RXD1 EMAC2:TXD2 EMAC2:TXD3 EMAC2:RXD2 EMAC2:RXD3}
     }
@@ -517,23 +517,24 @@ proc create_cpu_subsystem {} {
     set_instance_parameter_value agilex_hps JTAG_Enable                   {0}
     set_instance_parameter_value agilex_hps LWH2F_Address_Width           {29}
     set_instance_parameter_value agilex_hps LWH2F_Width                   {32}
-    set_instance_parameter_value agilex_hps MPLL_C0_Override_mhz          {1600.0}
+    set_instance_parameter_value agilex_hps MPLL_C0_Override_mhz          {800.0}
     set_instance_parameter_value agilex_hps MPLL_C1_Override_mhz          {800.0}
-    set_instance_parameter_value agilex_hps MPLL_C2_Override_mhz          {1066.67}
+    set_instance_parameter_value agilex_hps MPLL_C2_Override_mhz          {533.33}
     set_instance_parameter_value agilex_hps MPLL_C3_Override_mhz          {400.0}
     set_instance_parameter_value agilex_hps MPLL_Clock_Source             {0}
     set_instance_parameter_value agilex_hps MPLL_Override                 {0}
     set_instance_parameter_value agilex_hps MPLL_VCO_Override_mhz         {3200.0}
     set_instance_parameter_value agilex_hps MPU_Events_Enable             {0}
     set_instance_parameter_value agilex_hps MPU_clk_ccu_div               {2}
-    set_instance_parameter_value agilex_hps MPU_clk_freq_override_mhz     {1066.67}
+    set_instance_parameter_value agilex_hps MPU_clk_freq_override_mhz     {533.33}
     set_instance_parameter_value agilex_hps MPU_clk_override              {0}
     set_instance_parameter_value agilex_hps MPU_clk_periph_div            {4}
     set_instance_parameter_value agilex_hps MPU_clk_src_override          {2}
     set_instance_parameter_value agilex_hps MPU_core01_src_override       {1}
     set_instance_parameter_value agilex_hps MPU_core23_src_override       {0}
-    set_instance_parameter_value agilex_hps MPU_core2_freq_override_mhz   {1600.0}
-    set_instance_parameter_value agilex_hps MPU_core3_freq_override_mhz   {1600.0}
+    set_instance_parameter_value agilex_hps MPU_core01_freq_override_mhz  {800}
+    set_instance_parameter_value agilex_hps MPU_core2_freq_override_mhz   {800.0}
+    set_instance_parameter_value agilex_hps MPU_core3_freq_override_mhz   {800.0}
     set_instance_parameter_value agilex_hps NAND_Mode                     {N/A}
     set_instance_parameter_value agilex_hps NAND_PinMuxing                {Unused}
     set_instance_parameter_value agilex_hps NOC_clk_cs_debug_div          {4}
@@ -541,7 +542,7 @@ proc create_cpu_subsystem {} {
     set_instance_parameter_value agilex_hps NOC_clk_cs_trace_div          {4}
     set_instance_parameter_value agilex_hps NOC_clk_free_l4_div           {4}
     set_instance_parameter_value agilex_hps NOC_clk_periph_l4_div         {2}
-    set_instance_parameter_value agilex_hps NOC_clk_phy_div               {4}
+    set_instance_parameter_value agilex_hps NOC_clk_phy_div               {1}
     set_instance_parameter_value agilex_hps NOC_clk_slow_l4_div           {4}
     set_instance_parameter_value agilex_hps NOC_clk_src_select            {3}
     set_instance_parameter_value agilex_hps PLL_CLK0                      {Unused}
@@ -549,16 +550,16 @@ proc create_cpu_subsystem {} {
     set_instance_parameter_value agilex_hps PLL_CLK2                      {Unused}
     set_instance_parameter_value agilex_hps PLL_CLK3                      {Unused}
     set_instance_parameter_value agilex_hps PLL_CLK4                      {Unused}
-    set_instance_parameter_value agilex_hps PPLL_C0_Override_mhz          {1600.0}
-    set_instance_parameter_value agilex_hps PPLL_C1_Override_mhz          {800.0}
-    set_instance_parameter_value agilex_hps PPLL_C2_Override_mhz          {1066.67}
-    set_instance_parameter_value agilex_hps PPLL_C3_Override_mhz          {400.0}
+    set_instance_parameter_value agilex_hps PPLL_C0_Override_mhz          {600.0}
+    set_instance_parameter_value agilex_hps PPLL_C1_Override_mhz          {600.0}
+    set_instance_parameter_value agilex_hps PPLL_C2_Override_mhz          {24.0}
+    set_instance_parameter_value agilex_hps PPLL_C3_Override_mhz          {500.0}
     set_instance_parameter_value agilex_hps PPLL_Clock_Source             {0}
     set_instance_parameter_value agilex_hps PPLL_Override                 {0}
-    set_instance_parameter_value agilex_hps PPLL_VCO_Override_mhz         {3200.0}
-    set_instance_parameter_value agilex_hps Periph_clk_emac0_sel          {50}
-    set_instance_parameter_value agilex_hps Periph_clk_emac1_sel          {50}
-    set_instance_parameter_value agilex_hps Periph_clk_emac2_sel          {50}
+    set_instance_parameter_value agilex_hps PPLL_VCO_Override_mhz         {3000.0}
+    set_instance_parameter_value agilex_hps Periph_clk_emac0_sel          {250}
+    set_instance_parameter_value agilex_hps Periph_clk_emac1_sel          {250}
+    set_instance_parameter_value agilex_hps Periph_clk_emac2_sel          {250}
     set_instance_parameter_value agilex_hps Periph_clk_override           {0}
     set_instance_parameter_value agilex_hps Periph_emac_ptp_freq_override {400.0}
     set_instance_parameter_value agilex_hps Periph_emac_ptp_src_override  {7}
@@ -580,8 +581,8 @@ proc create_cpu_subsystem {} {
     set_instance_parameter_value agilex_hps Rst_hps_warm_en               {0}
     set_instance_parameter_value agilex_hps Rst_sdm_wd_config             {0}
     set_instance_parameter_value agilex_hps Rst_watchdog_en               {0}
-    set_instance_parameter_value agilex_hps SDMMC_Mode                    {N/A}
-    set_instance_parameter_value agilex_hps SDMMC_PinMuxing               {Unused}
+    set_instance_parameter_value agilex_hps SDMMC_Mode                    {4-bit}
+    set_instance_parameter_value agilex_hps SDMMC_PinMuxing               {IO}
     set_instance_parameter_value agilex_hps SPIM0_Mode                    {N/A}
     set_instance_parameter_value agilex_hps SPIM0_PinMuxing               {Unused}
     set_instance_parameter_value agilex_hps SPIM1_Mode                    {N/A}
@@ -1577,15 +1578,16 @@ proc edit_top_v_file {} {
     if {(${v_board_name} == "AGX_5E_Si_Devkit")} {
         add_top_port_list inout    ""         hps_i3c1_sda
         add_top_port_list inout    ""         hps_i3c1_scl
+        add_top_port_list inout    ""         hps_gpio0_io1
     } elseif {(${v_board_name} == "AGX_5E_Modular_Devkit")} {
         add_top_port_list inout    ""         hps_i2c_emac1_sda
         add_top_port_list inout    ""         hps_i2c_emac1_scl
     } else {
         add_top_port_list inout    ""         hps_i3c1_sda
         add_top_port_list inout    ""         hps_i3c1_scl
+        add_top_port_list inout    ""         hps_gpio0_io1
     }
     add_top_port_list inout    ""         hps_gpio0_io0
-    add_top_port_list inout    ""         hps_gpio0_io1
     add_top_port_list inout    ""         hps_gpio0_io11
     add_top_port_list inout    ""         hps_gpio1_io3
     add_top_port_list inout    ""         hps_gpio1_io4
@@ -1593,7 +1595,7 @@ proc edit_top_v_file {} {
     # USB 3.1
     add_top_port_list input    ""         usb31_io_vbus_det
     add_top_port_list input    ""         usb31_io_flt_bar
-    add_top_port_list output   "\[1:0\]"  usb31_io_usb_ctrl
+    add_top_port_list output   ""         usb31_io_usb_ctrl
     add_top_port_list input    ""         usb31_io_usb31_id
     add_top_port_list input    ""         usb31_phy_refclk_p_clk
     add_top_port_list input    ""         usb31_phy_rx_serial_n
@@ -1602,6 +1604,8 @@ proc edit_top_v_file {} {
     add_top_port_list output   ""         usb31_phy_tx_serial_p
 
     add_declaration_list wire ""  usb31_phy_pma_cpu_clk
+    add_declaration_list  wire "\[1:0\]"   usb31_io_usb_ctrl_int
+    add_assignments_list "usb31_io_usb_ctrl"     "usb31_io_usb_ctrl_int\[1\]"
 
     if {${v_i2c0_ext_en}} {
         add_declaration_list wire ""            "hps_i2c0_scl_in"
@@ -1686,15 +1690,16 @@ proc edit_top_v_file {} {
     }
 
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio0"           hps_gpio0_io0
-    add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio1"           hps_gpio0_io1
 
     set v_board_name [get_shell_parameter DEVKIT]
     if {${v_board_name} == "AGX_5E_Si_Devkit"} {
         add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio11"          hps_gpio0_io11
+        add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio1"           hps_gpio0_io1
     } elseif {${v_board_name} == "AGX_5E_Modular_Devkit"} {
         add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio10"          hps_gpio0_io11
     } else {
         add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio11"          hps_gpio0_io11
+        add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio1"           hps_gpio0_io1
     }
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio27"          hps_gpio1_io3
     add_qsys_inst_exports_list    "${v_instance_name}_c_hps_io_gpio28"          hps_gpio1_io4
@@ -1702,7 +1707,7 @@ proc edit_top_v_file {} {
     # USB 3.1
     add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_vbus_det"      usb31_io_vbus_det
     add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_flt_bar"       usb31_io_flt_bar
-    add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_usb_ctrl"      usb31_io_usb_ctrl
+    add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_usb_ctrl"      usb31_io_usb_ctrl_int
     add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_usb31_id"      usb31_io_usb31_id
 
     add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_pma_cpu_clk_clk"            usb31_phy_pma_cpu_clk
@@ -1733,6 +1738,7 @@ proc edit_top_v_file {} {
     add_qsys_inst_exports_list    "${v_instance_name}_c_emif_mem_mem_dq"              hps_mem_dq
     add_qsys_inst_exports_list    "${v_instance_name}_c_emif_mem_mem_dqs_t"           hps_mem_dqs
     add_qsys_inst_exports_list    "${v_instance_name}_c_emif_mem_mem_dqs_c"           hps_mem_dqs_n
+    add_qsys_inst_exports_list    "${v_instance_name}_c_emif_mem_mem_dbi_n"           hps_mem_dbi_n
 
     if {${v_i2c0_ext_en}} {
         add_qsys_inst_exports_list    "${v_instance_name}_agilex_hps_i2c0_scl_i_clk"    hps_i2c0_scl_in
