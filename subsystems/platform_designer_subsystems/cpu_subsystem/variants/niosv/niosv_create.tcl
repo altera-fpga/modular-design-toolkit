@@ -11,13 +11,20 @@
 # or implied warranties, other than those that are expressly stated in the License.
 ###################################################################################
 
-set_shell_parameter UART_IRQ_PRIORITY   "0"
+set_shell_parameter JUART_IRQ_PRIORITY  "0"
 set_shell_parameter TIMER_IRQ_PRIORITY  "1"
+# Defined by the user
+set_shell_parameter UART_IRQ_PRIORITY   "X"
 
 set_shell_parameter MEMORY_SIZE         "0x400000"
 
 set_shell_parameter JTAG_UART_EN        {1}
 set_shell_parameter CPU_TIMER_EN        {1}
+set_shell_parameter CPU_UART_EN         {0}
+set_shell_parameter CPU_DDR_EN          {0}
+
+set_shell_parameter CPU_CLK_HZ         {100000000}
+set_shell_parameter UART_CLK_HZ        {100000000}
 
 proc derive_parameters {param_array} {
 
@@ -28,9 +35,10 @@ proc derive_parameters {param_array} {
 
     set v_instance_name      [get_shell_parameter INSTANCE_NAME]
     set v_timer_irq_priority [get_shell_parameter TIMER_IRQ_PRIORITY]
+    set v_juart_irq_priority [get_shell_parameter JUART_IRQ_PRIORITY]
     set v_uart_irq_priority  [get_shell_parameter UART_IRQ_PRIORITY]
 
-    set v_internal_priorities [list ${v_timer_irq_priority} ${v_uart_irq_priority}]
+    set v_internal_priorities [list ${v_timer_irq_priority} ${v_juart_irq_priority} ${v_uart_irq_priority}]
 
     if {[::irq_connect_pkg::check_duplicate_priorities ${v_internal_priorities}]} {
         puts "found duplicate internal priorities"
@@ -58,6 +66,7 @@ proc creation_step {} {
 proc post_creation_step {} {
     edit_top_level_qsys
     add_auto_connections
+    edit_top_v_file
 }
 
 proc post_connection_step {} {
@@ -117,6 +126,7 @@ proc create_niosv_subsystem {} {
     set v_instance_name           [get_shell_parameter INSTANCE_NAME]
 
     set v_timer_irq_priority      [get_shell_parameter TIMER_IRQ_PRIORITY]
+    set v_juart_irq_priority      [get_shell_parameter JUART_IRQ_PRIORITY]
     set v_uart_irq_priority       [get_shell_parameter UART_IRQ_PRIORITY]
 
     set v_irq_bridge_width        [get_shell_parameter DRV_IRQ_BRIDGE_WIDTH]
@@ -124,8 +134,13 @@ proc create_niosv_subsystem {} {
 
     set v_memory_size             [get_shell_parameter MEMORY_SIZE]
 
+    set v_cpu_clk_hz              [get_shell_parameter CPU_CLK_HZ]
+    set v_uart_clk_hz             [get_shell_parameter UART_CLK_HZ]
+
     set v_jtag_uart_en            [get_shell_parameter JTAG_UART_EN]
     set v_cpu_timer_en            [get_shell_parameter CPU_TIMER_EN]
+    set v_cpu_uart_en             [get_shell_parameter CPU_UART_EN]
+    set v_cpu_ddr_en              [get_shell_parameter CPU_DDR_EN]
 
     create_system ${v_instance_name}
     save_system   ${v_project_path}/rtl/shell/${v_instance_name}.qsys
@@ -145,11 +160,22 @@ proc create_niosv_subsystem {} {
     if {${v_cpu_timer_en}} {
         add_instance  cpu_timer       altera_avalon_timer
     }
+    if {${v_cpu_uart_en}} {
+        add_instance  uart_0           altera_16550_uart
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            add_instance  uart_clk_bridge       altera_clock_bridge
+            add_instance  uart_rst_bridge       altera_reset_bridge
+            add_instance  uart_cpu_cc_bridge    mm_ccb
+        }
+    }
+    if {${v_cpu_ddr_en}} {
+        add_instance  cpu_ddr_se       altera_address_span_extender
+    }
 
     # instance parameters
 
     # cpu_clk_bridge
-    set_instance_parameter_value  cpu_clk_bridge  EXPLICIT_CLOCK_RATE         {100000000.0}
+    set_instance_parameter_value  cpu_clk_bridge  EXPLICIT_CLOCK_RATE         ${v_cpu_clk_hz}
     set_instance_parameter_value  cpu_clk_bridge  NUM_CLOCK_OUTPUTS           1
 
     # cpu_rst_bridge
@@ -211,6 +237,54 @@ proc create_niosv_subsystem {} {
         set_instance_parameter_value  cpu_timer   periodUnits     ${v_timer_units}
     }
 
+    if {${v_cpu_uart_en}} {
+        # uart_0
+        set_instance_parameter_value  uart_0          MEM_BLOCK_TYPE               {AUTO}
+        set_instance_parameter_value  uart_0          FIFO_MODE                    {1}
+        set_instance_parameter_value  uart_0          FIFO_DEPTH                   {256}
+        set_instance_parameter_value  uart_0          FIFO_HWFC                    {1}
+        set_instance_parameter_value  uart_0          DMA_EXTRA                    {0}
+
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            # uart_clk_bridge
+            set_instance_parameter_value  uart_clk_bridge  EXPLICIT_CLOCK_RATE         ${v_uart_clk_hz}
+            set_instance_parameter_value  uart_clk_bridge  NUM_CLOCK_OUTPUTS           1
+
+            # uart_rst_bridge
+            set_instance_parameter_value  uart_rst_bridge  ACTIVE_LOW_RESET            0
+            set_instance_parameter_value  uart_rst_bridge  SYNCHRONOUS_EDGES           deassert
+            set_instance_parameter_value  uart_rst_bridge  NUM_RESET_OUTPUTS           1
+            set_instance_parameter_value  uart_rst_bridge  USE_RESET_REQUEST           0
+            set_instance_parameter_value  uart_rst_bridge  SYNC_RESET                  0
+
+            # uart_cpu_cc_bridge
+            set_instance_parameter_value      uart_cpu_cc_bridge       ADDRESS_UNITS                {SYMBOLS}
+            set_instance_parameter_value      uart_cpu_cc_bridge       ADDRESS_WIDTH                {0}
+            set_instance_parameter_value      uart_cpu_cc_bridge       DATA_WIDTH                   {32}
+            set_instance_parameter_value      uart_cpu_cc_bridge       MAX_BURST_SIZE               {1}
+            set_instance_parameter_value      uart_cpu_cc_bridge       SYMBOL_WIDTH                 {8}
+            set_instance_parameter_value      uart_cpu_cc_bridge       SYNC_RESET                   {0}
+            set_instance_parameter_value      uart_cpu_cc_bridge       USE_AUTO_ADDRESS_WIDTH       {1}
+            set_instance_parameter_value      uart_cpu_cc_bridge       COMMAND_FIFO_DEPTH           {4}
+            set_instance_parameter_value      uart_cpu_cc_bridge       MASTER_SYNC_DEPTH            {2}
+            set_instance_parameter_value      uart_cpu_cc_bridge       RESPONSE_FIFO_DEPTH          {4}
+            set_instance_parameter_value      uart_cpu_cc_bridge       SLAVE_SYNC_DEPTH             {2}
+        }
+    }
+
+    if {${v_cpu_ddr_en}} {
+        # cpu_ddr_se
+        set_instance_parameter_value      cpu_ddr_se                BURSTCOUNT_WIDTH            {7}
+        set_instance_parameter_value      cpu_ddr_se                DATA_WIDTH                  {256}
+        set_instance_parameter_value      cpu_ddr_se                ENABLE_SLAVE_PORT           {0}
+        set_instance_parameter_value      cpu_ddr_se                MASTER_ADDRESS_DEF          {0}
+        set_instance_parameter_value      cpu_ddr_se                MASTER_ADDRESS_WIDTH        {33}
+        set_instance_parameter_value      cpu_ddr_se                MAX_PENDING_READS           {8}
+        set_instance_parameter_value      cpu_ddr_se                SLAVE_ADDRESS_WIDTH         {26}
+        set_instance_parameter_value      cpu_ddr_se                SUB_WINDOW_COUNT            {1}
+        set_instance_parameter_value      cpu_ddr_se                SYNC_RESET                  {0}
+    }
+
     # create internal subsystem connections
 
     add_connection  cpu_clk_bridge.out_clk    cpu_rst_bridge.clk
@@ -223,6 +297,9 @@ proc create_niosv_subsystem {} {
     if {${v_cpu_timer_en}} {
         add_connection  cpu_clk_bridge.out_clk    cpu_timer.clk
     }
+    if {${v_cpu_ddr_en}} {
+        add_connection  cpu_clk_bridge.out_clk    cpu_ddr_se.clock
+    }
 
     add_connection  cpu_rst_bridge.out_reset  cpu_mm_bridge.reset
     add_connection  cpu_rst_bridge.out_reset  cpu.reset
@@ -233,29 +310,75 @@ proc create_niosv_subsystem {} {
     if {${v_cpu_timer_en}} {
         add_connection  cpu_rst_bridge.out_reset  cpu_timer.reset
     }
+    if {${v_cpu_ddr_en}} {
+        add_connection  cpu_rst_bridge.out_reset  cpu_ddr_se.reset
+    }
+
+    # uart_0 clock and reset connections (depending on UART clock frequency)
+    if {${v_cpu_uart_en}} {
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            # uart_0
+            add_connection      uart_clk_bridge.out_clk     uart_0.clock
+            add_connection      uart_clk_bridge.out_clk     uart_rst_bridge.clk
+            add_connection      uart_rst_bridge.out_reset   uart_0.reset_sink
+
+            # uart_cpu_cc_bridge
+            add_connection      cpu_clk_bridge.out_clk      uart_cpu_cc_bridge.m0_clk
+            add_connection      uart_clk_bridge.out_clk     uart_cpu_cc_bridge.s0_clk
+
+            add_connection      cpu_rst_bridge.out_reset    uart_cpu_cc_bridge.m0_reset
+            add_connection      uart_rst_bridge.out_reset   uart_cpu_cc_bridge.s0_reset
+
+        } else {
+            # uart_0
+            add_connection      cpu_clk_bridge.out_clk      uart_0.clock
+            add_connection      cpu_rst_bridge.out_reset    uart_0.reset_sink
+        }
+    }
 
     add_connection  cpu.data_manager          cpu_mm_bridge.s0
     add_connection  cpu.data_manager          cpu.dm_agent
     add_connection  cpu.data_manager          cpu.timer_sw_agent
     add_connection  cpu.data_manager          cpu_ram.axi_s1
+
     if {${v_jtag_uart_en}} {
         add_connection  cpu.data_manager          cpu_jtag_uart.avalon_jtag_slave
     }
     if {${v_cpu_timer_en}} {
         add_connection  cpu.data_manager          cpu_timer.s1
     }
+    if {${v_cpu_ddr_en}} {
+        add_connection  cpu.data_manager          cpu_ddr_se.windowed_slave
+    }
 
     add_connection  cpu.instruction_manager    cpu.dm_agent
     add_connection  cpu.instruction_manager    cpu_ram.axi_s1
 
-    if {(${v_jtag_uart_en} ) && (${v_uart_irq_priority} != "X")} {
+    # uart_0 data (depending on UART clock frequency)
+    if {${v_cpu_uart_en}} {
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            # uart_0
+            add_connection      cpu.data_manager            uart_cpu_cc_bridge.s0
+            add_connection      uart_cpu_cc_bridge.m0       uart_0.avalon_slave
+        } else {
+            add_connection      cpu.data_manager            uart_0.avalon_slave
+        }
+    }
+
+    if {(${v_jtag_uart_en} ) && (${v_juart_irq_priority} != "X")} {
         add_connection  cpu.platform_irq_rx   cpu_jtag_uart.irq
-        set_connection_parameter_value  cpu.platform_irq_rx/cpu_jtag_uart.irq irqNumber ${v_uart_irq_priority}
+        set_connection_parameter_value  cpu.platform_irq_rx/cpu_jtag_uart.irq irqNumber ${v_juart_irq_priority}
     }
 
     if {(${v_cpu_timer_en} ) && (${v_timer_irq_priority} != "X")} {
         add_connection  cpu.platform_irq_rx   cpu_timer.irq
         set_connection_parameter_value  cpu.platform_irq_rx/cpu_timer.irq irqNumber ${v_timer_irq_priority}
+    }
+
+    # uart_0 interrupt (depending on UART clock frequency)
+    if {${v_cpu_uart_en}} {
+        add_connection  cpu.platform_irq_rx   uart_0.irq_sender
+        set_connection_parameter_value  cpu.platform_irq_rx/uart_0.irq_sender irqNumber ${v_uart_irq_priority}
     }
 
     # add interfaces to the boundary of the subsystem
@@ -268,6 +391,27 @@ proc create_niosv_subsystem {} {
 
     add_interface          o_cpu_mm_master        avalon     host
     set_interface_property o_cpu_mm_master        export_of  cpu_mm_bridge.m0
+
+    if {${v_cpu_uart_en}} {
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            add_interface          i_clk_uart              clock      sink
+            set_interface_property i_clk_uart              export_of  uart_clk_bridge.in_clk
+
+            add_interface          i_reset_uart            reset      sink
+            set_interface_property i_reset_uart            export_of  uart_rst_bridge.in_reset
+        }
+        # uart0
+        add_interface             uart0_serial      conduit     end
+        set_interface_property    uart0_serial      export_of   uart_0.RS_232_Serial
+
+        add_interface             uart0_modem       conduit     end
+        set_interface_property    uart0_modem       export_of   uart_0.RS_232_Modem
+    }
+
+    if {${v_cpu_ddr_en}} {
+        # cpu_ddr_se
+        set_interface_property    av_mm_host_se     export_of   cpu_ddr_se.expanded_master
+    }
 
     # add irq bridge if required
 
@@ -306,6 +450,19 @@ proc create_niosv_subsystem {} {
     if {${v_jtag_uart_en}} {
         set_connection_parameter_value  cpu.data_manager/cpu_jtag_uart.avalon_jtag_slave   baseAddress   "0x00410060"
     }
+    if {${v_cpu_ddr_en}} {
+        set_connection_parameter_value  cpu.data_manager/cpu_ddr_se.windowed_slave         baseAddress   "0x80000000"
+    }
+    if {${v_cpu_uart_en}} {
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            # uart_0
+            set_connection_parameter_value  cpu.data_manager/uart_cpu_cc_bridge.s0         baseAddress     "0x00410200"
+            set_connection_parameter_value  uart_cpu_cc_bridge.m0/uart_0.avalon_slave      baseAddress     "0x0"
+
+        } else {
+            set_connection_parameter_value  cpu.data_manager/uart_0.avalon_slave           baseAddress     "0x00410200"
+        }
+    }
     set_connection_parameter_value  cpu.data_manager/cpu_mm_bridge.s0                  baseAddress   "0x00420000"
 
     set_connection_parameter_value  cpu.instruction_manager/cpu_ram.axi_s1             baseAddress   "0x00000000"
@@ -319,6 +476,15 @@ proc create_niosv_subsystem {} {
     }
     if {${v_jtag_uart_en}} {
         lock_avalon_base_address  cpu_jtag_uart.avalon_jtag_slave
+    }
+    if {${v_cpu_ddr_en}} {
+        lock_avalon_base_address  cpu_ddr_se.windowed_slave
+    }
+    if {${v_cpu_uart_en}} {
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            lock_avalon_base_address  uart_cpu_cc_bridge.s0
+        }
+        lock_avalon_base_address  uart_0.avalon_slave
     }
     lock_avalon_base_address  cpu_mm_bridge.s0
 
@@ -334,13 +500,34 @@ proc edit_top_level_qsys {} {
     set v_project_name  [get_shell_parameter PROJECT_NAME]
     set v_project_path  [get_shell_parameter PROJECT_PATH]
     set v_instance_name [get_shell_parameter INSTANCE_NAME]
+    set v_cpu_uart_en   [get_shell_parameter CPU_UART_EN]
 
     load_system ${v_project_path}/rtl/${v_project_name}_qsys.qsys
 
     add_instance ${v_instance_name} ${v_instance_name}
 
+    if {${v_cpu_uart_en}} {
+        add_interface             "${v_instance_name}_uart0_serial" conduit    end
+        set_interface_property    "${v_instance_name}_uart0_serial" export_of  ${v_instance_name}.uart0_serial
+    }
+
     sync_sysinfo_parameters
     save_system
+}
+
+proc edit_top_v_file {} {
+    set v_instance_name [get_shell_parameter INSTANCE_NAME]
+    set v_cpu_uart_en             [get_shell_parameter CPU_UART_EN]
+
+    if {${v_cpu_uart_en}} {
+        add_top_port_list input  ""             uart0_serial_in
+        add_top_port_list output ""             uart0_serial_out
+        add_top_port_list output ""             uart0_serial_out_oe
+
+        add_qsys_inst_exports_list    "${v_instance_name}_uart0_serial_sin"         uart0_serial_in
+        add_qsys_inst_exports_list    "${v_instance_name}_uart0_serial_sout"        uart0_serial_out
+        add_qsys_inst_exports_list    "${v_instance_name}_uart0_serial_sout_oe"     uart0_serial_out_oe
+    }
 }
 
 # enable a subset of subsystem interfaces to be available for auto-connection
@@ -349,11 +536,26 @@ proc edit_top_level_qsys {} {
 proc add_auto_connections {} {
     set v_instance_name [get_shell_parameter INSTANCE_NAME]
     set v_drv_irq_bridge_width  [get_shell_parameter DRV_IRQ_BRIDGE_WIDTH]
+    set v_cpu_clk_hz    [get_shell_parameter CPU_CLK_HZ]
+    set v_uart_clk_hz   [get_shell_parameter UART_CLK_HZ]
+    set v_cpu_uart_en   [get_shell_parameter CPU_UART_EN]
+    set v_cpu_ddr_en    [get_shell_parameter CPU_DDR_EN]
 
-    add_auto_connection ${v_instance_name}  i_clk_cpu    100000000
-    add_auto_connection ${v_instance_name}  i_reset_cpu  100000000
+    add_auto_connection ${v_instance_name}  i_clk_cpu    ${v_cpu_clk_hz}
+    add_auto_connection ${v_instance_name}  i_reset_cpu  ${v_cpu_clk_hz}
+
+    if {${v_cpu_uart_en}} {
+        if {${v_cpu_clk_hz} != ${v_uart_clk_hz}} {
+            add_auto_connection ${v_instance_name}  i_clk_uart    ${v_uart_clk_hz}
+            add_auto_connection ${v_instance_name}  i_reset_uart  ${v_uart_clk_hz}
+        }
+    }
 
     add_avmm_connections o_cpu_mm_master "host"
+
+    if {${v_cpu_ddr_en}} {
+        add_auto_connection   ${v_instance_name}    av_mm_host_se       emif_user_data
+    }
 
     if {${v_drv_irq_bridge_width} >= 1} {
         add_irq_connection ${v_instance_name} "ia_cpu_irq_receiver" 0 ${v_instance_name}_irq

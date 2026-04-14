@@ -1,5 +1,5 @@
 ###################################################################################
-# Copyright (C) 2025 Altera Corporation
+# Copyright (C) Altera Corporation
 #
 # This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
@@ -40,6 +40,8 @@ if {${v_board_name} == "A10_1150_DEVKIT"} {
     source ${v_shell_design_root}/emif_subsystem/variants/AGX_5E_ARROW_Eagle_Devkit/emif_agx_create.tcl
 } elseif {${v_board_name} == "AGX_5E_MACNICA_Sulfur_Devkit"} {
     source ${v_shell_design_root}/emif_subsystem/variants/AGX_5E_MACNICA_Sulfur_Devkit/emif_agx_create.tcl
+} elseif {${v_board_name} == "AGX_3C_Devkit"} {
+    source ${v_shell_design_root}/emif_subsystem/variants/AGX_3C_Devkit/emif_agx_create.tcl
 } else {
     return -code error "devkit ${v_board_name} not supported (EMIF Subsystem)"
 }

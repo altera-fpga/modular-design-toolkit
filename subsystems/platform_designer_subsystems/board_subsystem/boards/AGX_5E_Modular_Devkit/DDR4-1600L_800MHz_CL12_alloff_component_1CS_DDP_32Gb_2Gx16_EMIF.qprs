@@ -12,7 +12,9 @@
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_DQ_X_TGT_WR" value="4" />
    <parameter name="EMIF_SHOW_INTERNAL_SETTINGS" value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCCD_L_NS" value="5.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TDSS_NS" value="0.18" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_AC_TX_EQUALIZATION"
+       value="OFF" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_CK_OUTPUT_IO_STD_TYPE"
        value="DF_SSTL" />
@@ -21,22 +23,21 @@
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_R_S_DQ_OUTPUT_OHM"
        value="SERIES_34_OHM_CAL" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_BOARD_TRAIT" value="" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TDSH_NS" value="0.18" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_BG_ROTATE_EN" value="1" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_ALERT_N_PLACEMENT"
        value="AC2" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCPDED_NS" value="4.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TDQSCK_MAX_MIN_NS"
-       value="0.225" />
+       value="0.16" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_W2R_DIFFCS_CYC"
        value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_R_S_CK_OUTPUT_OHM"
        value="SERIES_34_OHM_CAL" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCCD_DLR_NS" value="5.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCCD_DLR_NS" value="0.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_MARGIN"
        value="false" />
@@ -47,23 +48,28 @@
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TZQCS_NS" value="128.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCK_CL_CWL_MIN_NS"
-       value="1.25" />
+       value="0.937" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TXS_DLL_NS" value="597.0" />
    <parameter
        name="emif_io96b_hps|refclk_bridge|INTERFACES"
        value="refclk_in        clock    sink,refclk_out       clock    source,refclk_in_gpio   conduit  end,refclk_out_gpio  conduit  start" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|EX_DESIGN_TG_WIDE_IF"
+       value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRRD_L_NS" value="6.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CWL_CYC" value="9.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CWL_CYC" value="11.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWTR_S_CRC_DM_NS"
-       value="5.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_REQ" value="true" />
+       value="4.6875" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_REQ"
+       value="false" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_FORCE_MIN_4_AC_LANES_EN"
        value="false" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWTR_L_CRC_DM_NS"
-       value="5.0" />
+       value="4.6875" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2R_DIFFCS_CYC"
        value="0" />
@@ -74,12 +80,6 @@
        name="emif_io96b_hps|emif_0_ddr4comp|HPS_EMIF_RZQ_SHARING"
        value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_PAGE_SIZE" value="1024.0" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE"
-       value="A5ED065BB32AE6SR0" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_BASE_DIE"
-       value="SM7" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_RD_PREAMBLE_MODE"
        value="1.0" />
@@ -97,31 +97,31 @@
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_R_S_CS_OUTPUT_OHM"
        value="SERIES_34_OHM_CAL" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TMPRR_NS" value="1.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWLH_NS" value="0.13" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_R_T_REFCLK_INPUT_OHM"
        value="RT_DIFF" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CL_CYC" value="12.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_FIXED_W_PRIORITY" value="0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CL_CYC" value="15.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_CK_TX_EQUALIZATION"
+       value="OFF" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_FIXED_R_PRIORITY" value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_DQ_X_NON_TGT_RD"
        value="off" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_GROUP" value="B" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CHANNEL_CS_WIDTH" value="1" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_DQ_VREF" value="68.3" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_PLACEMENT_EN" value="true" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|CTRL_ECC_AUTOCORRECT_EN"
-       value="false" />
+       value="true" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|ANALOG_PARAM_DERIVATION_PARAM_NAME"
        value="" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TQSH_NS" value="0.4" />
    <parameter name="EMIF_REF_CLK_SHARING" value="false" />
    <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_TEMPERATURE_GRADE"
-       value="EXTENDED" />
-   <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_SWIZZLE_MAP"
-       value="BYTE_SWIZZLE_CH0=0 X X X 1 2 3 X;PIN_SWIZZLE_CH0_DQS3=26 30 28 24 25 27 29 31;PIN_SWIZZLE_CH0_DQS2=16 20 22 18 23 21 19 17;PIN_SWIZZLE_CH0_DQS1=14 11 12 8 10 9 13 15;PIN_SWIZZLE_CH0_DQS0=2 0 6 4 7 5 3 1;" />
+       value="BYTE_SWIZZLE_CH0=0 X X X 1 2 3 ECC;PIN_SWIZZLE_CH0_DQS0=2 0 6 4 7 5 3 1;PIN_SWIZZLE_CH0_DQS1=14 11 12 8 10 9 13 15;PIN_SWIZZLE_CH0_DQS2=16 20 22 18 23 21 19 17;PIN_SWIZZLE_CH0_DQS3=26 30 28 24 25 27 29 31;PIN_SWIZZLE_CH0_ECC=4 6 2 0 1 7 5 3;" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|CTRL_AUTO_PRECHARGE_EN"
        value="false" />
@@ -130,43 +130,37 @@
        value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_OPERATING_FREQ_MHZ"
-       value="800" />
+       value="1066.667" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKE_NS" value="4.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRFC_DLR_NS" value="190.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRFC_DLR_NS" value="0.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TMOD_NS" value="24.0" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_IOBANK_REVISION"
-       value="IO96B" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|IS_HPS" value="true" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TREFI_NS" value="7800.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_FINE_GRANULARITY_REFRESH_MODE"
        value="1.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_SPEEDBIN" value="1600L" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRRD_DLR_NS" value="4.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_SPEEDBIN" value="3200AA" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRRD_DLR_NS" value="0.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_CS_OUTPUT_IO_STD_TYPE"
        value="SSTL" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRTP_NS" value="7.5" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKESR_CYC" value="5.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKESR_CYC" value="6.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_DQS_IO_STD_TYPE"
        value="DF_POD" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_DIE_DQ_WIDTH" value="8" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_AC_PARITY_EN" value="false" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRCD_NS" value="15.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_AC_SLEW_RATE"
+       value="FASTEST" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRCD_NS" value="13.75" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_W2W_SAMECS_CYC"
        value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_REFCLK_FREQ_MHZ"
        value="150.0" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_SPEEDGRADE"
-       value="6" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_DIE_REVISIONS"
-       value="MAIN_SM7_REVA" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_AC_MIRRORING_EN"
        value="false" />
@@ -179,8 +173,11 @@
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TXP_NS" value="5.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TZQOPER_CYC" value="512.0" />
    <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_DQ_TX_EQUALIZATION"
+       value="OFF" />
+   <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_CHANNEL_ECC_DQ_WIDTH"
-       value="0" />
+       value="8" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_R_S_AC_OUTPUT_OHM"
        value="SERIES_34_OHM_CAL" />
@@ -192,6 +189,7 @@
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_REFCLK_FREQ_MHZ_AUTOSET_EN"
        value="false" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_ALL_STRB_EN" value="false" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_AC_PARITY_LATENCY_MODE"
        value="0.0" />
@@ -205,17 +203,18 @@
        value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCCD_S_NS" value="4.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_DQ_X_IDLE" value="off" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWR_CRC_DM_NS" value="5.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWR_CRC_DM_NS"
+       value="4.6875" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TMRD_NS" value="8.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TWLS_NS" value="0.13" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2R_SAMECS_CYC"
        value="0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_CLAMSHELL_EN" value="false" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|DIAG_EXTRA_PARAMETERS" value="" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TFAW_DLR_NS" value="20.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRRD_S_NS" value="5.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_DM_EN" value="false" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TFAW_DLR_NS" value="0.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRRD_S_NS" value="3.75" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|CTRL_DM_EN" value="true" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_REFCLK_IO_STD_TYPE"
        value="TRUE_DIFF" />
@@ -230,45 +229,41 @@
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_W2R_SAMECS_CYC"
        value="0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TIH_NS" value="140000.0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCK_CL_CWL_MAX_NS"
-       value="1.5" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRP_NS" value="15.0" />
+       value="1.071" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRP_NS" value="13.75" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_WR_PREAMBLE_MODE"
        value="1.0" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_CK_SLEW_RATE"
+       value="FASTEST" />
    <parameter
        name="emif_io96b_hps|refclk_bridge|CUSTOM_ELABORATION_COMMANDS"
        value="" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_DQ_VREF" value="35" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRAS_MAX_NS" value="70200.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TIS_NS" value="115000.0" />
    <parameter name="EMIF_RZQ_SHARING" value="false" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_FAMILY"
-       value="Agilex 5" />
-   <parameter
-       name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_DEVICE_POWER_MODEL"
-       value="STANDARD_POWER_FIXED" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_SUPPORTS_VID" value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_GPIO_IO_STD_TYPE"
        value="LVCMOS" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_VREF_DQ_X_RANGE" value="2" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRAS_MIN_NS" value="35.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRAS_MIN_NS" value="32.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_PARK" value="4" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2W_DIFFCS_CYC"
        value="0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKSRE_NS" value="8.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_WEQ" value="true" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|ADV_CAL_ENABLE_WEQ"
+       value="false" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|TURNAROUND_R2W_SAMECS_CYC"
        value="0" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|CTRL_PERFORMANCE_PROFILE"
-       value="default" />
+       value="SEQ" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_DIE_DENSITY_GBITS"
        value="16" />
@@ -278,23 +273,552 @@
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_DQ_IO_STD_TYPE"
        value="POD" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|SYSINFO_BOARD" value="default" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_DQ_X_NON_TGT_WR"
        value="off" />
    <parameter name="EMIF_PROTOCOL" value="DDR4_COMP" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_CS_TX_EQUALIZATION"
+       value="OFF" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_WR_CRC_EN" value="0.0" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRC_NS" value="50.0" />
+   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TRC_NS" value="45.75" />
    <parameter
        name="emif_io96b_hps|emif_0_ddr4comp|JEDEC_OVERRIDE_TABLE_PARAM_NAME"
-       value="MEM_TRAS_NS,MEM_TCCD_L_NS,MEM_TCCD_S_NS,MEM_TRRD_L_NS,MEM_TFAW_NS,MEM_TWTR_L_NS,MEM_TWTR_S_NS,MEM_TMRD_NS,MEM_TCKSRE_NS,MEM_TCKSRX_NS,MEM_TCKE_NS,MEM_TMPRR_NS,MEM_TDSH_NS,MEM_TDSS_NS,MEM_TIH_NS,MEM_TIS_NS,MEM_TQSH_NS,MEM_TWLH_NS,MEM_TWLS_NS,MEM_TRFC_DLR_NS,MEM_TRRD_DLR_NS,MEM_TFAW_DLR_NS,MEM_TCCD_DLR_NS,MEM_TXP_NS,MEM_TXS_DLL_NS,MEM_TCPDED_NS,MEM_TMOD_NS,MEM_TZQCS_NS" />
+       value="MEM_TRAS_NS,MEM_TCCD_L_NS,MEM_TCCD_S_NS,MEM_TRRD_L_NS,MEM_TFAW_NS,MEM_TWTR_L_NS,MEM_TWTR_S_NS,MEM_TMRD_NS,MEM_TCKSRE_NS,MEM_TCKSRX_NS,MEM_TCKE_NS,MEM_TMPRR_NS,MEM_TXP_NS,MEM_TXS_DLL_NS,MEM_TCPDED_NS,MEM_TMOD_NS,MEM_TZQCS_NS" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|CTRL_FIXED_PRIORITY_EN"
+       value="false" />
+   <parameter
+       name="emif_io96b_hps|emif_0_ddr4comp|PHY_TERM_X_CS_SLEW_RATE"
+       value="FASTEST" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_ODT_NOM" value="off" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_AL_CYC" value="0.0" />
    <parameter
        name="emif_io96b_hps|refclk_bridge|CONNECTIONS"
        value="refclk_in        refclk_in_gpio,refclk_out_gpio  refclk_out" />
-   <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TDQSS_CYC" value="0.0" />
    <parameter name="emif_io96b_hps|emif_0_ddr4comp|MEM_TCKSRX_NS" value="8.0" />
+   <pin
+       name="mem_0.mem_cke"
+       exported_signal_name="agilex_hps_emif_mem_mem_cke"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_odt"
+       exported_signal_name="agilex_hps_emif_mem_mem_odt"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_cs_n"
+       exported_signal_name="agilex_hps_emif_mem_mem_cs_n"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[2]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[2]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[3]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[3]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[4]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[4]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[5]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[5]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[6]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[6]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[7]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[7]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[8]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[8]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[9]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[9]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[10]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[10]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[11]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[11]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[12]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[12]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[13]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[13]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[14]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[14]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[15]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[15]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_a[16]"
+       exported_signal_name="agilex_hps_emif_mem_mem_a[16]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_ba[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_ba[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_ba[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_ba[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_bg[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_bg[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_bg[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_bg[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_act_n"
+       exported_signal_name="agilex_hps_emif_mem_mem_act_n"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_par"
+       exported_signal_name="agilex_hps_emif_mem_mem_par"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[2]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[2]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[3]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[3]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[4]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[4]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[5]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[5]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[6]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[6]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[7]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[7]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[8]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[8]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[9]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[9]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[10]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[10]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[11]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[11]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[12]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[12]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[13]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[13]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[14]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[14]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[15]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[15]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[16]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[16]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[17]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[17]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[18]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[18]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[19]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[19]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[20]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[20]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[21]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[21]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[22]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[22]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[23]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[23]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[24]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[24]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[25]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[25]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[26]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[26]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[27]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[27]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[28]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[28]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[29]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[29]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[30]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[30]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[31]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[31]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[32]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[32]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[33]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[33]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[34]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[34]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[35]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[35]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[36]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[36]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[37]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[37]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[38]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[38]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dq[39]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dq[39]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_t[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_t[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_t[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_t[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_t[2]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_t[2]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_t[3]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_t[3]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_t[4]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_t[4]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_c[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_c[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_c[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_c[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_c[2]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_c[2]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_c[3]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_c[3]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dqs_c[4]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dqs_c[4]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_alert_n"
+       exported_signal_name="agilex_hps_emif_mem_mem_alert_n"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dbi_n[0]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dbi_n[0]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dbi_n[1]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dbi_n[1]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dbi_n[2]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dbi_n[2]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dbi_n[3]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dbi_n[3]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_0.mem_dbi_n[4]"
+       exported_signal_name="agilex_hps_emif_mem_mem_dbi_n[4]"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem" />
+   <pin
+       name="mem_ck_0.mem_ck_t"
+       exported_signal_name="agilex_hps_emif_mem_ck_mem_ck_t"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem_ck" />
+   <pin
+       name="mem_ck_0.mem_ck_c"
+       exported_signal_name="agilex_hps_emif_mem_ck_mem_ck_c"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem_ck" />
+   <pin
+       name="mem_reset_n.mem_reset_n"
+       exported_signal_name="agilex_hps_emif_mem_reset_n_mem_reset_n"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_mem_reset_n" />
+   <pin
+       name="oct_0.oct_rzqin"
+       exported_signal_name="agilex_hps_emif_oct_oct_rzqin"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_oct" />
+   <pin
+       name="ref_clk.clk"
+       exported_signal_name="agilex_hps_emif_ref_clk_clk"
+       location=""
+       io_standard=""
+       exported_interface_name="agilex_hps_emif_ref_clk" />
   </preset>
  </presets>
 </ip>

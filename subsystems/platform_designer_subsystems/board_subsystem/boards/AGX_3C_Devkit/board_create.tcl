@@ -1,5 +1,5 @@
-###################################################################################
-# Copyright (C) 2025 Altera Corporation
+########################################################################################################################
+# Copyright (C) Altera Corporation
 #
 # This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
@@ -9,7 +9,7 @@
 #
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the License.
-###################################################################################
+########################################################################################################################
 
 # create script specific parameters and default values
 
@@ -19,11 +19,15 @@
 # Allows the use of the memory though instantiating only an EMIF subsystem in the HPS
 # port without the user needing to provide parameters in the board subsystem
 set_shell_parameter PORT                        "hps"
+set_shell_parameter DEVICE_READY_EN             {0}
 
 # preset for use with HPS subsystem
 
 set_shell_parameter LPDDR4_PRESET_HPS           "LPDDR4_1066MHz_16Gb_1Gx16"
 set_shell_parameter LPDDR4_PRESET_HPS_FILE      "LPDDR4_1066MHz_16Gb_1Gx16.qprs"
+
+set_shell_parameter LPDDR4_PRESET_BANK_2A       "LPDDR4_1066MHz_16Gb_1Gx16_BANK_2A"
+set_shell_parameter LPDDR4_PRESET_BANK_2A_FILE  "LPDDR4_1066MHz_16Gb_1Gx16_BANK_2A.qprs"
 
 # preset for use with EMIF subsystem
 
@@ -194,9 +198,9 @@ proc create_board_subsystem {} {
     # Set Parameters
     # board_clk_bridge
     set_instance_parameter_value  board_clk_bridge          EXPLICIT_CLOCK_RATE     {100000000.0}
-    set_instance_parameter_value  board_clk_bridge          NUM_CLOCK_OUTPUTS       2
+    set_instance_parameter_value  board_clk_bridge          NUM_CLOCK_OUTPUTS       {2}
     # board_pb_reset_generator
-    set_instance_parameter_value  board_pb_reset_generator  CNTR_WIDTH              23
+    set_instance_parameter_value  board_pb_reset_generator  CNTR_WIDTH              {23}
     # board_init_generator
     set_instance_parameter_value  board_init_generator      outputType              {Reset Interface}
     # board_init_reset_bridge
@@ -259,22 +263,22 @@ proc create_board_subsystem {} {
 
         # Set Parameters
         # io_data_clk_bridge
-        set_instance_parameter_value  io_data_clk_bridge    NUM_CLOCK_OUTPUTS         1
+        set_instance_parameter_value  io_data_clk_bridge    NUM_CLOCK_OUTPUTS         {1}
         # io_data_rst_bridge
-        set_instance_parameter_value  io_data_rst_bridge    NUM_RESET_OUTPUTS         1
+        set_instance_parameter_value  io_data_rst_bridge    NUM_RESET_OUTPUTS         {1}
         # io_data_avmm_bridge
-        set_instance_parameter_value  io_data_avmm_bridge   SYNC_RESET                0
-        set_instance_parameter_value  io_data_avmm_bridge   DATA_WIDTH                32
-        set_instance_parameter_value  io_data_avmm_bridge   SYMBOL_WIDTH              8
-        set_instance_parameter_value  io_data_avmm_bridge   ADDRESS_WIDTH             0
-        set_instance_parameter_value  io_data_avmm_bridge   USE_AUTO_ADDRESS_WIDTH    1
-        set_instance_parameter_value  io_data_avmm_bridge   ADDRESS_UNITS             SYMBOLS
-        set_instance_parameter_value  io_data_avmm_bridge   MAX_BURST_SIZE            1
-        set_instance_parameter_value  io_data_avmm_bridge   LINEWRAPBURSTS            0
-        set_instance_parameter_value  io_data_avmm_bridge   MAX_PENDING_RESPONSES     4
-        set_instance_parameter_value  io_data_avmm_bridge   PIPELINE_COMMAND          1
-        set_instance_parameter_value  io_data_avmm_bridge   PIPELINE_RESPONSE         1
-        set_instance_parameter_value  io_data_avmm_bridge   USE_RESPONSE              0
+        set_instance_parameter_value  io_data_avmm_bridge   SYNC_RESET                {0}
+        set_instance_parameter_value  io_data_avmm_bridge   DATA_WIDTH                {32}
+        set_instance_parameter_value  io_data_avmm_bridge   SYMBOL_WIDTH              {8}
+        set_instance_parameter_value  io_data_avmm_bridge   ADDRESS_WIDTH             {0}
+        set_instance_parameter_value  io_data_avmm_bridge   USE_AUTO_ADDRESS_WIDTH    {1}
+        set_instance_parameter_value  io_data_avmm_bridge   ADDRESS_UNITS             {SYMBOLS}
+        set_instance_parameter_value  io_data_avmm_bridge   MAX_BURST_SIZE            {1}
+        set_instance_parameter_value  io_data_avmm_bridge   LINEWRAPBURSTS            {0}
+        set_instance_parameter_value  io_data_avmm_bridge   MAX_PENDING_RESPONSES     {4}
+        set_instance_parameter_value  io_data_avmm_bridge   PIPELINE_COMMAND          {1}
+        set_instance_parameter_value  io_data_avmm_bridge   PIPELINE_RESPONSE         {1}
+        set_instance_parameter_value  io_data_avmm_bridge   USE_RESPONSE              {0}
 
         # Create Connections
         # io_data_clk_bridge
@@ -301,10 +305,10 @@ proc create_board_subsystem {} {
         add_instance user_led_pio       altera_avalon_pio
 
         # Set Parameters
-        set_instance_parameter_value    user_led_pio        WIDTH              8
-        set_instance_parameter_value    user_led_pio        DIRECTION          Output
-        set_instance_parameter_value    user_led_pio        resetValue         0x0
-        set_instance_parameter_value    user_led_pio        bitModifyingOutReg 0
+        set_instance_parameter_value    user_led_pio        WIDTH              {8}
+        set_instance_parameter_value    user_led_pio        DIRECTION          {Output}
+        set_instance_parameter_value    user_led_pio        resetValue         {0x0}
+        set_instance_parameter_value    user_led_pio        bitModifyingOutReg {0}
 
         # Create Exports
         add_interface                   o_leds              conduit         end
@@ -336,11 +340,11 @@ proc create_board_subsystem {} {
         add_instance user_pb_pio        altera_avalon_pio
 
         # Set Parameters
-        set_instance_parameter_value    user_pb_pio         WIDTH                8
-        set_instance_parameter_value    user_pb_pio         DIRECTION            Input
-        set_instance_parameter_value    user_pb_pio         captureEdge          0
-        set_instance_parameter_value    user_pb_pio         generateIRQ          0
-        set_instance_parameter_value    user_pb_pio         simDoTestBenchWiring 0
+        set_instance_parameter_value    user_pb_pio         WIDTH                {8}
+        set_instance_parameter_value    user_pb_pio         DIRECTION            {Input}
+        set_instance_parameter_value    user_pb_pio         captureEdge          {0}
+        set_instance_parameter_value    user_pb_pio         generateIRQ          {0}
+        set_instance_parameter_value    user_pb_pio         simDoTestBenchWiring {0}
 
         # Create Exports
         add_interface                   ia_pb               conduit         end
@@ -377,26 +381,32 @@ proc edit_top_level_qsys {} {
     set v_instance_name         [get_shell_parameter INSTANCE_NAME]
     set v_user_led_to_avmm_en   [get_shell_parameter USER_LED_TO_AVMM_EN]
     set v_user_pb_to_avmm_en    [get_shell_parameter USER_PB_TO_AVMM_EN]
+    set v_device_ready_en       [get_shell_parameter DEVICE_READY_EN]
 
     load_system     ${v_project_path}/rtl/${v_project_name}_qsys.qsys
 
     add_instance    ${v_instance_name}  ${v_instance_name}
 
     # add interfaces to the boundary of the subsystem
-    add_interface               ${v_instance_name}_i_clk            clock       sink
-    set_interface_property      ${v_instance_name}_i_clk            export_of   ${v_instance_name}.i_clk
+    add_interface               ${v_instance_name}_i_clk              clock     sink
+    set_interface_property      ${v_instance_name}_i_clk              export_of ${v_instance_name}.i_clk
 
-    add_interface               ${v_instance_name}_ia_reset_pb_n    reset       sink
-    set_interface_property      ${v_instance_name}_ia_reset_pb_n    export_of   ${v_instance_name}.ia_reset_pb_n
+    add_interface               ${v_instance_name}_ia_reset_pb_n      reset     sink
+    set_interface_property      ${v_instance_name}_ia_reset_pb_n      export_of ${v_instance_name}.ia_reset_pb_n
 
     if {${v_user_led_to_avmm_en}} {
-        add_interface               ${v_instance_name}_o_leds       conduit     end
-        set_interface_property      ${v_instance_name}_o_leds       export_of   ${v_instance_name}.o_leds
+        add_interface           ${v_instance_name}_o_leds             conduit   end
+        set_interface_property  ${v_instance_name}_o_leds             export_of ${v_instance_name}.o_leds
     }
 
     if {${v_user_pb_to_avmm_en}} {
-        add_interface               ${v_instance_name}_ia_pb        conduit     end
-        set_interface_property      ${v_instance_name}_ia_pb        export_of   ${v_instance_name}.ia_pb
+        add_interface           ${v_instance_name}_ia_pb              conduit   end
+        set_interface_property  ${v_instance_name}_ia_pb              export_of ${v_instance_name}.ia_pb
+    }
+
+    if {${v_device_ready_en}} {
+        add_interface           ${v_instance_name}_o_rst_device_ready conduit   end
+        set_interface_property  ${v_instance_name}_o_rst_device_ready export_of ${v_instance_name}.o_rst_device_ready
     }
 
     sync_sysinfo_parameters
@@ -404,7 +414,7 @@ proc edit_top_level_qsys {} {
 }
 
 # enable a subset of subsystem interfaces to be available for auto-connection
-# to other subsystems at the top qsys level
+# to other subsystems at the top Platform Designer level
 proc add_auto_connections {} {
     set v_instance_name           [get_shell_parameter INSTANCE_NAME]
     set v_user_led_to_avmm_en     [get_shell_parameter USER_LED_TO_AVMM_EN]
@@ -413,16 +423,16 @@ proc add_auto_connections {} {
     set v_avmm_host               [get_shell_parameter AVMM_HOST]
     set v_avmm_output_en          [expr ${v_user_led_to_avmm_en} + ${v_user_pb_to_avmm_en}]
 
-    add_auto_connection         ${v_instance_name}    o_clk                 ref_clk
-    add_auto_connection         ${v_instance_name}    o_reset               board_rst
+    add_auto_connection         ${v_instance_name}    o_clk               ref_clk
+    add_auto_connection         ${v_instance_name}    o_reset             board_rst
 
-    add_auto_connection         ${v_instance_name}    o_rst_device_ready    device_ready_rst
+    add_auto_connection         ${v_instance_name}    o_rst_device_ready  device_ready_rst
 
     if {${v_avmm_output_en} > 0} {
-        add_auto_connection     ${v_instance_name}      i_clk_board_data    100000000
-        add_auto_connection     ${v_instance_name}      i_rst_board_data    100000000
+        add_auto_connection     ${v_instance_name}    i_clk_board_data    {100000000}
+        add_auto_connection     ${v_instance_name}    i_rst_board_data    {100000000}
 
-        add_avmm_connections    i_avmm_board_data       ${v_avmm_host}
+        add_avmm_connections    i_avmm_board_data     ${v_avmm_host}
     }
 }
 
@@ -432,19 +442,20 @@ proc edit_top_v_file {} {
     set v_user_led_to_avmm_en       [get_shell_parameter USER_LED_TO_AVMM_EN]
     set v_user_pb_to_avmm_en        [get_shell_parameter USER_PB_TO_AVMM_EN]
     set v_drv_ddr_enabled_banks     [get_shell_parameter DRV_DDR_ENABLED_BANKS]
+    set v_device_ready_en           [get_shell_parameter DEVICE_READY_EN]
 
     # add the EMIF interfaces
     foreach v_bank ${v_drv_ddr_enabled_banks} {
         if {${v_bank} == "BANK_2A"} {
-            set v_dq_width      32
-            set v_dqs_width     4
-            set v_ca_width      6
-            set v_dmi_width     4
+            set v_dq_width      {32}
+            set v_dqs_width     {4}
+            set v_ca_width      {6}
+            set v_dmi_width     {4}
         } elseif {(${v_bank} == "BANK_3A") || (${v_bank} == "HPS") } {
-            set v_dq_width      32
-            set v_dqs_width     4
-            set v_ca_width      6
-            set v_dmi_width     4
+            set v_dq_width      {32}
+            set v_dqs_width     {4}
+            set v_ca_width      {6}
+            set v_dmi_width     {4}
         }
 
         set v_bank_lower    [string tolower ${v_bank}]
@@ -468,13 +479,17 @@ proc edit_top_v_file {} {
     }
 
     if {${v_user_led_to_avmm_en}} {
-        add_declaration_list wire   "\[1:0\]"                           "user_led_export"
-        add_assignments_list        "user_led"                          "~user_led_export\[1:0\]"
-        add_qsys_inst_exports_list  "${v_instance_name}_o_leds_export"  "user_led_export"
+        add_declaration_list wire   "\[1:0\]"                                      "user_led_export"
+        add_assignments_list        "user_led"                                     "~user_led_export\[1:0\]"
+        add_qsys_inst_exports_list  "${v_instance_name}_o_leds_export"             "user_led_export"
     }
 
     if {${v_user_pb_to_avmm_en}} {
-        add_qsys_inst_exports_list  "${v_instance_name}_ia_pb_export"   "~user_pb_n"
+        add_qsys_inst_exports_list  "${v_instance_name}_ia_pb_export"              "~user_pb_n"
+    }
+
+    if {${v_device_ready_en}} {
+        add_declaration_list wire   ""                                             "user_device_ready_export"
+        add_qsys_inst_exports_list  "${v_instance_name}_o_rst_device_ready_reset"  "user_device_ready_export"
     }
 }
-
