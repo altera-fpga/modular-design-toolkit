@@ -68,7 +68,7 @@ set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_en
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "HPS"] >= 0} {
     # DDR4 Bank 3A
     set_location_assignment PIN_AB117 -to hps_mem_pll_ref_clk -comment "EMIF HPS"
-    set_location_assignment PIN_Y117  -to "emif_hps_emif_ref_clk_0_clk(n)"
+    set_location_assignment PIN_Y117  -to "hps_mem_pll_ref_clk(n)"
     set_location_assignment PIN_AK111 -to hps_mem_oct_rzqin   -comment "EMIF HPS"
     set_location_assignment PIN_H117  -to hps_mem_reset_n     -comment "EMIF HPS"
     set_location_assignment PIN_Y108  -to hps_mem_alert_n
@@ -78,7 +78,7 @@ set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_en
     set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to hps_mem_ck_n
 
     set_location_assignment PIN_T114  -to hps_mem_a[0]
-    set_instance_assignment -name IO_STANDARD "SSTL-12" -to hps_mem_a[0]hps
+    set_instance_assignment -name IO_STANDARD "SSTL-12" -to hps_mem_a[0]
     set_location_assignment PIN_P114  -to hps_mem_a[1]
     set_instance_assignment -name IO_STANDARD "SSTL-12" -to hps_mem_a[1]
     set_location_assignment PIN_V117  -to hps_mem_a[2]
