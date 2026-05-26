@@ -39,12 +39,13 @@ namespace eval create_shell {
 
     set v_qsys_script_exe         [file join $::env(QUARTUS_ROOTDIR) sopc_builder bin qsys-script]
     set v_create_subsystem_script [file join ${v_toolkit_root} scripts create create_subsystems.tcl]
+    set v_qsys_jvm_max_heap       "6G"
 
     # The first usage message must be -help
     set v_usage_message {}
     lappend v_usage_message {quartus_sh -t create_shell.tcl [-? | -help]}
     lappend v_usage_message {quartus_sh -t create_shell.tcl [-l | -list]}
-    lappend v_usage_message {quartus_sh -t create_shell.tcl (-proj_name=?) (-proj_path=?) (-xml_path=?) (-i) (-o)}
+    lappend v_usage_message {quartus_sh -t create_shell.tcl (-proj_name=?) (-proj_path=?) (-xml_path=?) (-jvm_max_heap=?) (-i) (-o)}
 
     set v_help_message {}
     lappend v_help_message ""
@@ -67,6 +68,9 @@ namespace eval create_shell {
     lappend v_help_message "    -proj_path  Project path. Output directory to generate Quartus project in.  "
     lappend v_help_message "                (Default: <toolkit_root>/output)                                "
     lappend v_help_message "    -xml_path   Path to XML design file. (e.g. ~\design.xml)                    "
+    lappend v_help_message "    -jvm_max_heap  Optional. Platform Designer (qsys-script) JVM max heap:      "
+    lappend v_help_message "                <size><unit> with unit m/M or g/G (e.g. 512m, 20G).             "
+    lappend v_help_message "                Omitted => default 6G. Empty values are rejected.               "
     lappend v_help_message "    -o          Overwrite. Delete the contents of -proj_path if it exists,      "
     lappend v_help_message "                before project creation                                         "
     lappend v_help_message "    -i          List IP. Generate a CSV of Platform Designer IP used in the     "
@@ -79,11 +83,12 @@ namespace eval create_shell {
     set v_default_proj_path [file normalize [file join ${v_toolkit_root} ".." "output"]]
 
     set v_options {
-        {"proj_name.arg" ""}
-        {"proj_path.arg" ${v_default_proj_path}}
-        {"xml_path.arg"  ""}
-        {"i"             "0"}
-        {"o"             "0"}
+        {"proj_name.arg"    ""}
+        {"proj_path.arg"    ${v_default_proj_path}}
+        {"xml_path.arg"     ""}
+        {"jvm_max_heap.arg" "6G"}
+        {"i"                "0"}
+        {"o"                "0"}
     }
 
     set v_hidden_options {"l" "list"}
@@ -262,7 +267,8 @@ namespace eval create_shell {
 
     }
 
-    # Parse command line arguments; write results to project_settings array
+    # Parse command line arguments; write results to project_settings array;
+    # validate -jvm_max_heap and set ::create_shell::v_qsys_jvm_max_heap.
 
     proc ::create_shell::parse_command_line_arguments {arguments project_settings} {
 
@@ -310,6 +316,19 @@ namespace eval create_shell {
         } trap {CMDLINE ERROR} {message} {
             return -code error ${message}
         }
+
+        if {![info exists v_project_settings(jvm_max_heap)]} {
+            return -code error "Internal error: jvm_max_heap missing after command-line parsing, check create script"
+        }
+        set v_jvm_heap [string trim $v_project_settings(jvm_max_heap)]
+        if {$v_jvm_heap eq ""} {
+            return -code error "-jvm_max_heap is empty; pass a value such as -jvm_max_heap=6G"
+        }
+        if {![regexp {^[1-9][0-9]*[mMgG]$} $v_jvm_heap]} {
+            return -code error "Invalid -jvm_max_heap (${v_jvm_heap}): use <size><unit> with unit m, M, g, or G (e.g. 512m, 8G)"
+        }
+        set v_project_settings(jvm_max_heap) $v_jvm_heap
+        set ::create_shell::v_qsys_jvm_max_heap $v_jvm_heap
 
         if {[string equal $v_project_settings(xml_path) ""] == 1} {
             return -code error "XML path is required"
@@ -498,7 +517,8 @@ namespace eval create_shell {
 
         set v_command [list ${::create_shell::v_qsys_script_exe} --script=${::create_shell::v_create_subsystem_script} \
                             ${::create_shell::v_toolkit_root} [array get v_parameter_array] \
-                            --quartus-project=${v_quartus_project} 2>@1]
+                            --quartus-project=${v_quartus_project} \
+                            --jvm-max-heap-size=${::create_shell::v_qsys_jvm_max_heap} 2>@1]
 
         set v_exit_code [::pd_handler_pkg::run ${v_command} $v_parameter_array(project,path)]
 

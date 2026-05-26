@@ -18,6 +18,7 @@ set_shell_parameter DUMMY           {0}
 
 # if non-zero, enables an async clock input to EMIF for the user
 set_shell_parameter ASYNC_CLK       {0}
+set_shell_parameter ASYNC_CLK_HZ    {1000000}
 
 set_shell_parameter AVMM_EN         {0}
 
@@ -123,8 +124,10 @@ proc create_emif_subsystem {} {
     set v_instance_name   [get_shell_parameter INSTANCE_NAME]
     set v_port            [get_shell_parameter DRV_PORT]
     set v_async_clk_en    [get_shell_parameter DRV_ASYNC_CLK_EN]
+    set v_async_clk_hz    [get_shell_parameter ASYNC_CLK_HZ]
     set v_avmm_en         [get_shell_parameter AVMM_EN]
     set v_bank_2b_ecc_en  [get_shell_parameter BANK_2B_ECC_EN]
+    set v_device          [get_shell_parameter DEVICE]
 
     create_system ${v_instance_name}
     save_system   ${v_project_path}/rtl/shell/${v_instance_name}.qsys
@@ -178,12 +181,19 @@ proc create_emif_subsystem {} {
 
     set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_MARGIN                         {0}
     set_instance_parameter_value    ddr4_emif     ANALOG_PARAM_DERIVATION_PARAM_NAME            {}
+    set_instance_parameter_value    ddr4_emif     CTRL_ALL_STRB_EN                              {0}
     set_instance_parameter_value    ddr4_emif     CTRL_AUTO_PRECHARGE_EN                        {0}
+    set_instance_parameter_value    ddr4_emif     CTRL_BG_ROTATE_EN                             {1}
     set_instance_parameter_value    ddr4_emif     CTRL_DM_EN                                    {1}
-    set_instance_parameter_value    ddr4_emif     CTRL_PERFORMANCE_PROFILE                      {default}
+    set_instance_parameter_value    ddr4_emif     CTRL_FIXED_PRIORITY_EN                        {0}
+    set_instance_parameter_value    ddr4_emif     CTRL_FIXED_R_PRIORITY                         {0}
+    set_instance_parameter_value    ddr4_emif     CTRL_FIXED_W_PRIORITY                         {0}
+    set_instance_parameter_value    ddr4_emif     CTRL_PERFORMANCE_PROFILE                      {SEQ}
+    set_instance_parameter_value    ddr4_emif     CTRL_PLACEMENT_EN                             {1}
     set_instance_parameter_value    ddr4_emif     CTRL_RD_DBI_EN                                {0}
     set_instance_parameter_value    ddr4_emif     CTRL_SCRAMBLER_EN                             {0}
     set_instance_parameter_value    ddr4_emif     CTRL_WR_DBI_EN                                {0}
+    set_instance_parameter_value    ddr4_emif     DEBUG_PRINT_LEVEL                             {0}
     set_instance_parameter_value    ddr4_emif     DEBUG_TOOLS_EN                                {0}
     set_instance_parameter_value    ddr4_emif     DIAG_EXTRA_PARAMETERS                         {}
     set_instance_parameter_value    ddr4_emif     DIAG_HMC_ADDR_SWAP_EN                         {0}
@@ -197,13 +207,14 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     EX_DESIGN_PMON_INTERNAL_JAMB_EN               {1}
     set_instance_parameter_value    ddr4_emif     EX_DESIGN_TG_CSR_ACCESS_MODE                  {JTAG}
     set_instance_parameter_value    ddr4_emif     EX_DESIGN_TG_PROGRAM                          {MEDIUM}
+    set_instance_parameter_value    ddr4_emif     EX_DESIGN_TG_WIDE_IF                          {0}
     set_instance_parameter_value    ddr4_emif     EX_DESIGN_USER_PLL_OUTPUT_FREQ_MHZ            {200.0}
     set_instance_parameter_value    ddr4_emif     EX_DESIGN_USER_PLL_OUTPUT_FREQ_MHZ_AUTOSET_EN {1}
     set_instance_parameter_value    ddr4_emif     EX_DESIGN_USER_PLL_REFCLK_FREQ_MHZ            {100.0}
     set_instance_parameter_value    ddr4_emif     HPS_EMIF_RZQ_SHARING                          {0}
     set_instance_parameter_value    ddr4_emif     INSTANCE_ID                                   {0}
     set_instance_parameter_value    ddr4_emif     IS_HPS                                        {0}
-    set_instance_parameter_value    ddr4_emif     JEDEC_OVERRIDE_TABLE_PARAM_NAME {MEM_CL_CYC MEM_CWL_CYC MEM_TRFC_NS MEM_TRFC_DLR_NS MEM_TRRD_DLR_NS MEM_TFAW_DLR_NS MEM_TCCD_DLR_NS}
+    set_instance_parameter_value    ddr4_emif     JEDEC_OVERRIDE_TABLE_PARAM_NAME {MEM_CL_CYC MEM_CWL_CYC MEM_TRFC_NS}
     set_instance_parameter_value    ddr4_emif     MEM_AC_MIRRORING_EN                           {0}
     set_instance_parameter_value    ddr4_emif     MEM_AC_PARITY_EN                              {0}
     set_instance_parameter_value    ddr4_emif     MEM_AC_PARITY_LATENCY_MODE                    {0.0}
@@ -211,8 +222,16 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_CS_WIDTH                          {1}
     set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_DATA_DQ_WIDTH                     {32}
     set_instance_parameter_value    ddr4_emif     MEM_CLAMSHELL_EN                              {0}
-    set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {12.0}
-    set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {11.0}
+    if {${v_device} == "A5ED065BB32AE6SR0"} {
+        set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {12.0}
+        set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {11.0}
+    } elseif { ${v_device} == "A5ED065BB32AE4S"} {
+        set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {17.0}
+        set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {12.0}
+    } else {
+        set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {12.0}
+        set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {11.0}
+    }
     set_instance_parameter_value    ddr4_emif     MEM_DIE_DENSITY_GBITS                         {16}
     set_instance_parameter_value    ddr4_emif     MEM_DIE_DQ_WIDTH                              {8}
     set_instance_parameter_value    ddr4_emif     MEM_DQ_VREF                                   {35}
@@ -231,7 +250,7 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     MEM_RANKS_SHARE_CK_EN                         {0}
     set_instance_parameter_value    ddr4_emif     MEM_RD_PREAMBLE_MODE                          {1.0}
     set_instance_parameter_value    ddr4_emif     MEM_SPEEDBIN                                  {3200AA}
-    set_instance_parameter_value    ddr4_emif     MEM_TCCD_DLR_NS                               {5.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TCCD_DLR_NS                               {0}
     set_instance_parameter_value    ddr4_emif     MEM_TCCD_L_NS                                 {6.25}
     set_instance_parameter_value    ddr4_emif     MEM_TCCD_S_NS                                 {5.0}
     set_instance_parameter_value    ddr4_emif     MEM_TCKESR_CYC                                {5.0}
@@ -243,32 +262,24 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     MEM_TCPDED_NS                                 {5.0}
     set_instance_parameter_value    ddr4_emif     MEM_TDQSCK_MAX_MIN_NS                         {0.16}
     set_instance_parameter_value    ddr4_emif     MEM_TDQSCK_NS                                 {0.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TDQSS_CYC                                 {0.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TDSH_NS                                   {0.225}
-    set_instance_parameter_value    ddr4_emif     MEM_TDSS_NS                                   {0.225}
-    set_instance_parameter_value    ddr4_emif     MEM_TFAW_DLR_NS                               {20.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TFAW_DLR_NS                               {0}
     set_instance_parameter_value    ddr4_emif     MEM_TFAW_NS                                   {25.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TIH_NS                                    {65000.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TIS_NS                                    {40000.0}
     set_instance_parameter_value    ddr4_emif     MEM_TMOD_NS                                   {30.0}
     set_instance_parameter_value    ddr4_emif     MEM_TMPRR_NS                                  {1.25}
     set_instance_parameter_value    ddr4_emif     MEM_TMRD_NS                                   {10.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TQSH_NS                                   {0.5}
     set_instance_parameter_value    ddr4_emif     MEM_TRAS_MAX_NS                               {70200.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRAS_MIN_NS                               {32.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRAS_NS                                   {32.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRCD_NS                                   {13.75}
     set_instance_parameter_value    ddr4_emif     MEM_TRC_NS                                    {45.75}
     set_instance_parameter_value    ddr4_emif     MEM_TREFI_NS                                  {7800.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TRFC_DLR_NS                               {190.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TRFC_DLR_NS                               {0}
     set_instance_parameter_value    ddr4_emif     MEM_TRFC_NS                                   {350.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRP_NS                                    {13.75}
-    set_instance_parameter_value    ddr4_emif     MEM_TRRD_DLR_NS                               {5.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TRRD_DLR_NS                               {0}
     set_instance_parameter_value    ddr4_emif     MEM_TRRD_L_NS                                 {5.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRRD_S_NS                                 {5.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRTP_NS                                   {7.5}
-    set_instance_parameter_value    ddr4_emif     MEM_TWLH_NS                                   {0.1625}
-    set_instance_parameter_value    ddr4_emif     MEM_TWLS_NS                                   {0.1625}
     set_instance_parameter_value    ddr4_emif     MEM_TWR_CRC_DM_NS                             {6.25}
     set_instance_parameter_value    ddr4_emif     MEM_TWR_NS                                    {15.0}
     set_instance_parameter_value    ddr4_emif     MEM_TWTR_L_CRC_DM_NS                          {6.25}
@@ -286,9 +297,17 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     MEM_WR_CRC_EN                                 {0.0}
     set_instance_parameter_value    ddr4_emif     MEM_WR_PREAMBLE_MODE                          {1.0}
     set_instance_parameter_value    ddr4_emif     PHY_AC_PLACEMENT                              {BOT}
+    set_instance_parameter_value    ddr4_emif     PHY_AC_TX_EQUALIZATION                        {OFF}
     set_instance_parameter_value    ddr4_emif     PHY_ALERT_N_PLACEMENT                         {AC2}
+    set_instance_parameter_value    ddr4_emif     PHY_CK_TX_EQUALIZATION                        {OFF}
+    set_instance_parameter_value    ddr4_emif     PHY_CS_TX_EQUALIZATION                        {OFF}
+    set_instance_parameter_value    ddr4_emif     PHY_DQ_TX_EQUALIZATION                        {OFF}
     set_instance_parameter_value    ddr4_emif     PHY_FORCE_MIN_4_AC_LANES_EN                   {0}
-    set_instance_parameter_value    ddr4_emif     PHY_MAINBAND_ACCESS_MODE                      {SYNC}
+    if {${v_async_clk_en}} {
+        set_instance_parameter_value    ddr4_emif     PHY_MAINBAND_ACCESS_MODE                      {ASYNC}
+    } else {
+        set_instance_parameter_value    ddr4_emif     PHY_MAINBAND_ACCESS_MODE                      {SYNC}
+    }
     set_instance_parameter_value    ddr4_emif     PHY_MAINBAND_ACCESS_MODE_AUTOSET_EN           {0}
     set_instance_parameter_value    ddr4_emif     PHY_REFCLK_ADVANCED_SELECT_EN                 {0}
     set_instance_parameter_value    ddr4_emif     PHY_REFCLK_FREQ_MHZ                           {150.0}
@@ -296,8 +315,11 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     PHY_SIDEBAND_ACCESS_MODE                      {FABRIC}
     set_instance_parameter_value    ddr4_emif     PHY_SIDEBAND_ACCESS_MODE_AUTOSET_EN           {1}
     set_instance_parameter_value    ddr4_emif     PHY_TERM_X_AC_OUTPUT_IO_STD_TYPE              {SSTL}
+    set_instance_parameter_value    ddr4_emif     PHY_TERM_X_AC_SLEW_RATE                       {FASTEST}
     set_instance_parameter_value    ddr4_emif     PHY_TERM_X_CK_OUTPUT_IO_STD_TYPE              {DF_SSTL}
+    set_instance_parameter_value    ddr4_emif     PHY_TERM_X_CK_SLEW_RATE                       {FASTEST}
     set_instance_parameter_value    ddr4_emif     PHY_TERM_X_CS_OUTPUT_IO_STD_TYPE              {SSTL}
+    set_instance_parameter_value    ddr4_emif     PHY_TERM_X_CS_SLEW_RATE                       {FASTEST}
     set_instance_parameter_value    ddr4_emif     PHY_TERM_X_DQS_IO_STD_TYPE                    {DF_POD}
     set_instance_parameter_value    ddr4_emif     PHY_TERM_X_DQ_IO_STD_TYPE                     {POD}
     set_instance_parameter_value    ddr4_emif     PHY_TERM_X_DQ_SLEW_RATE                       {FASTEST}
@@ -322,10 +344,10 @@ proc create_emif_subsystem {} {
 
     if {${v_port} == "BANK_2B"} {
         if {${v_bank_2b_ecc_en} == 1} {
-            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ {1}
-            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ {1}
-            set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN {1}
-            set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH {8}
+            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ        {1}
+            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ        {1}
+            set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN   {1}
+            set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH  {8}
             set v_extra_params  "BYTE_SWIZZLE_CH0=1,X,X,X,0,2,3,ECC; \
                                                               PIN_SWIZZLE_CH0_DQS3=31,29,27,25,26,30,24,28; \
                                                               PIN_SWIZZLE_CH0_DQS2=19,23,21,17,16,18,20,22; \
@@ -333,30 +355,30 @@ proc create_emif_subsystem {} {
                                                               PIN_SWIZZLE_CH0_DQS0=7,5,1,3,4,2,0,6; \
                                                               PIN_SWIZZLE_CH0_ECC=6,4,0,2,5,7,3,1;"
         } else {
-            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ {0}
-            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ {0}
-            set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN {0}
-            set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH {0}
+            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ        {0}
+            set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ        {0}
+            set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN   {0}
+            set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH  {0}
             set v_extra_params  "BYTE_SWIZZLE_CH0=1,X,X,X,0,2,3,X;  PIN_SWIZZLE_CH0_DQS0=7,5,1,3,4,2,0,6; \
                                                               PIN_SWIZZLE_CH0_DQS1=9,15,13,11,14,12,8,10; \
                                                               PIN_SWIZZLE_CH0_DQS2=19,23,21,17,16,18,20,22; \
                                                               PIN_SWIZZLE_CH0_DQS3=31,29,27,25,26,30,24,28; "
         }
     } elseif {${v_port} == "BANK_3A"} {
-        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ {1}
-        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ {1}
-        set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN {1}
-        set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH {8}
+        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ            {1}
+        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ            {1}
+        set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN       {1}
+        set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH      {8}
         set v_extra_params "BYTE_SWIZZLE_CH0=0,X,X,X,1,2,3,ECC;   PIN_SWIZZLE_CH0_DQS0=2,0,6,4,7,5,3,1; \
                                                                 PIN_SWIZZLE_CH0_DQS1=14,11,12,8,10,9,13,15; \
                                                                 PIN_SWIZZLE_CH0_DQS2=16,20,22,18,23,21,19,17; \
                                                                 PIN_SWIZZLE_CH0_DQS3=26,30,28,24,25,27,29,31; \
                                                                 PIN_SWIZZLE_CH0_ECC=4,6,2,0,1,7,5,3;"
     } elseif {${v_port} == "BANK_3B"} {
-        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ {1}
-        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ {1}
-        set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN {1}
-        set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH {8}
+        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_REQ            {1}
+        set_instance_parameter_value    ddr4_emif     ADV_CAL_ENABLE_WEQ            {1}
+        set_instance_parameter_value    ddr4_emif     CTRL_ECC_AUTOCORRECT_EN       {1}
+        set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_ECC_DQ_WIDTH      {8}
         set v_extra_params  "BYTE_SWIZZLE_CH0=0,X,X,X,1,2,3,ECC;  PIN_SWIZZLE_CH0_DQS0=2,0,6,4,7,3,5,1; \
                                                                 PIN_SWIZZLE_CH0_DQS1=12,14,13,10,8,11,15,9; \
                                                                 PIN_SWIZZLE_CH0_DQS2=16,17,18,19,20,21,22,23; \
@@ -549,14 +571,15 @@ proc add_auto_connections {} {
     set v_instance_name   [get_shell_parameter INSTANCE_NAME]
     set v_async_clk_en    [get_shell_parameter DRV_ASYNC_CLK_EN]
     set v_async_clk       [get_shell_parameter ASYNC_CLK]
+    set v_async_clk_hz    [get_shell_parameter ASYNC_CLK_HZ]
 
     add_auto_connection   ${v_instance_name}    i_cal_clk   100000000
     add_auto_connection   ${v_instance_name}    i_cal_rst   100000000
 
     if {${v_async_clk_en}} {
-        add_auto_connection   ${v_instance_name}    i_clk_ddr4_emif_emif_usr   [expr ${v_async_clk} * 1000000]
+        add_auto_connection ${v_instance_name} i_clk_ddr4_emif_emif_usr [expr {${v_async_clk} * ${v_async_clk_hz}}]
     } else {
-        add_auto_connection   ${v_instance_name}    o_clk_ddr4_emif_emif_usr   ${v_instance_name}_user_clk
+        add_auto_connection ${v_instance_name} o_clk_ddr4_emif_emif_usr ${v_instance_name}_user_clk
     }
 
     add_auto_connection   ${v_instance_name}    o_reset_ddr4_emif_emif_usr    ${v_instance_name}_user_rst
