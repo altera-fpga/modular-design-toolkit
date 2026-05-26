@@ -26,6 +26,9 @@ set_shell_parameter FPGA_EMIF_HOST_ADDR_WIDTH           {0}
 # valid option: 27
 set_shell_parameter FPGA_EMIF_AGENT_ADDR_WIDTH          {0}
 
+set_shell_parameter FPGA_EMIF_ASYNC                     {0}
+set_shell_parameter FPGA_EMIF_ASYNC_CLK_HZ              {1000000}
+
 set_shell_parameter H2F_ADDRESS_WIDTH                   {38}
 
 set_shell_parameter HPS_AXI_CLK                         {100000000}
@@ -1471,6 +1474,8 @@ proc add_auto_connections {} {
     set v_h2f_lw_is_axi       [get_shell_parameter H2F_LW_IS_AXI]
 
     set v_fpga_emif_enabled   [get_shell_parameter FPGA_EMIF_ENABLED]
+    set v_fpga_emif_async     [get_shell_parameter FPGA_EMIF_ASYNC]
+    set v_fpga_emif_async_clk [get_shell_parameter FPGA_EMIF_ASYNC_CLK_HZ]
 
     set v_drv_msgdma_en       [get_shell_parameter DRV_MSGDMA_EN]
     set v_msgdma_agent        [get_shell_parameter MSGDMA_AGENT]
@@ -1505,13 +1510,23 @@ proc add_auto_connections {} {
     }
 
     if {${v_fpga_emif_enabled}} {
-        add_auto_connection ${v_instance_name} fpga_emif_clock    "emif_user_clk"
+        if {${v_fpga_emif_async}} {
+            add_auto_connection ${v_instance_name} fpga_emif_clock    ${v_fpga_emif_async_clk}
+        } else {
+            add_auto_connection ${v_instance_name} fpga_emif_clock    "emif_user_clk"
+        }
+
         add_auto_connection ${v_instance_name} fpga_emif_reset    "emif_user_rst"
         add_auto_connection ${v_instance_name} fpga_emif_avmm_m0  "emif_user_data"
     }
 
     if {${v_drv_msgdma_en}} {
-        add_auto_connection ${v_instance_name} msgdma_fpga_emif_clock       "${v_msgdma_agent}_user_clk"
+         if {${v_fpga_emif_async}} {
+            add_auto_connection ${v_instance_name} msgdma_fpga_emif_clock       ${v_fpga_emif_async_clk}
+         } else {
+            add_auto_connection ${v_instance_name} msgdma_fpga_emif_clock       "${v_msgdma_agent}_user_clk"
+         }
+
         add_auto_connection ${v_instance_name} msgdma_fpga_emif_reset       "${v_msgdma_agent}_user_rst"
         add_auto_connection ${v_instance_name} msgdma_fpga_emif_avmm_m0     "${v_msgdma_agent}_user_data"
     }
