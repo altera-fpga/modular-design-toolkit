@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<library>
+<index file="intel_offset_capability/intel_offset_capability_hw.tcl" />
+</library>
