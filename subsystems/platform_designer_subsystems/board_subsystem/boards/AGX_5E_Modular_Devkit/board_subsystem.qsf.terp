@@ -44,33 +44,33 @@ set_global_assignment -name BOARD default
 # clock/global reset
 # (HVIO6C_PLLREFCLK1) SI5332A-GM1 OUT4, default to 100MHz
 set_location_assignment PIN_BK31      -to clk_100_mhz
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to clk_100_mhz -entity ${v_entity_name}
+set_instance_assignment -name INPUT_TERMINATION OFF -to clk_100_mhz
+set_instance_assignment -name GLOBAL_SIGNAL ON -to clk_100_mhz -entity top
 
 # pin FPGA_CORE_RESETn, silkscreen=FPGA_RESET
 set_location_assignment PIN_BU28      -to rst_pb_n
-
-set_instance_assignment -name GLOBAL_SIGNAL ON -to clk_100_mhz -entity top
-
-set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to clk_100_mhz -entity ${v_entity_name}
 set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to rst_pb_n -entity ${v_entity_name}
+set_instance_assignment -name INPUT_TERMINATION OFF -to rst_pb_n
 
 # push buttons and LEDs
 set_location_assignment PIN_BW19 -to user_pb_n[0]  -comment "FPGA_PB0"
-
 set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to user_pb_n[0] -entity ${v_entity_name}
+set_instance_assignment -name INPUT_TERMINATION OFF -to user_pb_n[0]
 
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[0] -entity ${v_entity_name}
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[1] -entity ${v_entity_name}
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[2] -entity ${v_entity_name}
-set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_entity_name}
 
 # ddr
 @@ # note that the HPS and BANK_3A are the same
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "HPS"] >= 0} {
     # DDR4 Bank 3A
-    set_location_assignment PIN_AB117 -to hps_mem_pll_ref_clk -comment "EMIF HPS"
+    set_location_assignment PIN_AB117 -to hps_mem_pll_ref_clk
     set_location_assignment PIN_Y117  -to "hps_mem_pll_ref_clk(n)"
-    set_location_assignment PIN_AK111 -to hps_mem_oct_rzqin   -comment "EMIF HPS"
-    set_location_assignment PIN_H117  -to hps_mem_reset_n     -comment "EMIF HPS"
+    set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to hps_mem_pll_ref_clk
+    set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to "hps_mem_pll_ref_clk(n)"
+
+    set_location_assignment PIN_AK111 -to hps_mem_oct_rzqin
+    set_instance_assignment -name IO_STANDARD "1.2-V" -to hps_mem_oct_rzqin
+    set_location_assignment PIN_H117 -to hps_mem_reset_n
     set_location_assignment PIN_Y108  -to hps_mem_alert_n
     set_location_assignment PIN_H108  -to hps_mem_ck
     set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to hps_mem_ck
@@ -246,6 +246,7 @@ set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_en
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "BANK_3A"] >= 0} {
     # DDR4 Bank 3A
     set_location_assignment PIN_AB117 -to bank_3a_mem_pll_ref_clk   -comment "EMIF 3A"
+    set_location_assignment PIN_Y117  -to "bank_3a_mem_pll_ref_clk(n)" -comment "EMIF 3A"
     set_location_assignment PIN_AK111 -to bank_3a_mem_oct_rzqin     -comment "EMIF 3A"
     set_location_assignment PIN_H117  -to bank_3a_mem_reset_n       -comment "EMIF 3A"
     set_location_assignment PIN_T114  -to bank_3a_mem_a[0]          -comment "EMIF 3A"
@@ -428,6 +429,7 @@ set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_en
 @@ if {[lsearch -exact $v_drv_ddr_enabled_banks "BANK_2B"] >= 0} {
     # DDR4 Bank 2B
       set_location_assignment PIN_BR49 -to bank_2b_mem_pll_ref_clk  -comment "EMIF 2B"
+      set_location_assignment PIN_BU49 -to "bank_2b_mem_pll_ref_clk(n)" -comment "EMIF 2B"
       set_location_assignment PIN_BR52 -to bank_2b_mem_oct_rzqin    -comment "EMIF 2B"
       set_location_assignment PIN_CK45 -to bank_2b_mem_reset_n      -comment "EMIF 2B"
       set_location_assignment PIN_CF52 -to bank_2b_mem_a[0]         -comment "EMIF 2B"
@@ -696,6 +698,7 @@ set_instance_assignment -name IO_STANDARD "1.1 V" -to user_led[3] -entity ${v_en
       set_location_assignment PIN_D74  -to bank_3b_mem_odt[0]   -comment "EMIF 3B"
       set_location_assignment PIN_D65  -to bank_3b_mem_par      -comment "EMIF 3B"
       set_location_assignment PIN_AC68 -to bank_3b_mem_pll_ref_clk -comment "EMIF 3B"
+      set_location_assignment PIN_AC72 -to bank_3b_mem_pll_ref_clk(n) -comment "EMIF 3B"
       set_location_assignment PIN_M77  -to bank_3b_mem_reset_n  -comment "EMIF 3B"
 
       set_instance_assignment -name IO_STANDARD "1.2-V" -to bank_3b_mem_alert_n   -entity ${v_entity_name}

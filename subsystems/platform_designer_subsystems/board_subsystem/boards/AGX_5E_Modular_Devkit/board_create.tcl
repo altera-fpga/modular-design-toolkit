@@ -21,8 +21,17 @@
 set_shell_parameter PORT                        "hps"
 
 # preset for use with HPS subsystem
-set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF"
-set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF.qprs"
+set v_device          [get_shell_parameter DEVICE]
+if {${v_device} == "A5ED065BB32AE6SR0"} {
+    set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF"
+    set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF.qprs"
+} elseif { ${v_device} == "A5ED065BB32AE4S"} {
+    set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_1066Hz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF"
+    set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_1066MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF.qprs"
+} else {
+    set_shell_parameter DDR4_PRESET_HPS             "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF"
+    set_shell_parameter DDR4_PRESET_HPS_FILE        "DDR4-1600L_800MHz_CL12_alloff_component_1CS_DDP_32Gb_2Gx16_EMIF.qprs"
+}
 
 # preset for use with EMIF subsystem
 set_shell_parameter DDR4_PRESET_BANK_2B         "Custom Preset"

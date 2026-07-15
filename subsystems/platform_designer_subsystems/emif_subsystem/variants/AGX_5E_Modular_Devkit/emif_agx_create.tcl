@@ -1,5 +1,5 @@
 ###################################################################################
-# Copyright (C) 2025 Altera Corporation
+# Copyright (C) Altera Corporation
 #
 # This software and the related documents are Altera copyrighted materials, and
 # your use of them is governed by the express license under which they were
@@ -91,7 +91,7 @@ proc derive_parameters {param_array} {
 
     set_shell_parameter DRV_EMIF_SUBSYSTEMS ${v_emif_subsystems}
 
-    if {${v_async_clk} != 0} {
+    if {${v_async_clk}} {
         set_shell_parameter DRV_ASYNC_CLK_EN {1}
     } else {
         set_shell_parameter DRV_ASYNC_CLK_EN {0}
@@ -222,16 +222,72 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_CS_WIDTH                          {1}
     set_instance_parameter_value    ddr4_emif     MEM_CHANNEL_DATA_DQ_WIDTH                     {32}
     set_instance_parameter_value    ddr4_emif     MEM_CLAMSHELL_EN                              {0}
+
     if {${v_device} == "A5ED065BB32AE6SR0"} {
         set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {12.0}
         set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {11.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCCD_L_NS                                 {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TCCD_S_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCKESR_CYC                                {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MAX_NS                         {1.5}
+        set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MIN_NS                         {1.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TCPDED_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TFAW_NS                                   {25.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TMOD_NS                                   {30.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TMPRR_NS                                  {1.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TMRD_NS                                   {10.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TRRD_L_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TRRD_S_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TWR_CRC_DM_NS                             {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TWTR_L_CRC_DM_NS                          {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TWTR_S_CRC_DM_NS                          {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TXS_DLL_NS                                {1280.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TZQCS_NS                                  {160.0}
+        set_instance_parameter_value    ddr4_emif     MEM_OPERATING_FREQ_MHZ                        {800}
     } elseif { ${v_device} == "A5ED065BB32AE4S"} {
-        set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {17.0}
-        set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {12.0}
+        set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {16.0}
+        set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {14.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCCD_L_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCCD_S_NS                                 {3.75}
+        set_instance_parameter_value    ddr4_emif     MEM_TCKESR_CYC                                {7.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MAX_NS                         {1.071}
+        set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MIN_NS                         {0.937}
+        set_instance_parameter_value    ddr4_emif     MEM_TCPDED_NS                                 {3.75}
+        set_instance_parameter_value    ddr4_emif     MEM_TFAW_NS                                   {21.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TMOD_NS                                   {22.49999}
+        set_instance_parameter_value    ddr4_emif     MEM_TMPRR_NS                                  {0.9375}
+        set_instance_parameter_value    ddr4_emif     MEM_TMRD_NS                                   {7.5}
+        set_instance_parameter_value    ddr4_emif     MEM_TRRD_L_NS                                 {4.9}
+        set_instance_parameter_value    ddr4_emif     MEM_TRRD_S_NS                                 {3.75}
+        set_instance_parameter_value    ddr4_emif     MEM_TWR_CRC_DM_NS                             {4.6875}
+        set_instance_parameter_value    ddr4_emif     MEM_TWTR_L_CRC_DM_NS                          {4.6875}
+        set_instance_parameter_value    ddr4_emif     MEM_TWTR_S_CRC_DM_NS                          {4.6875}
+        set_instance_parameter_value    ddr4_emif     MEM_TXS_DLL_NS                                {959.9997}
+        set_instance_parameter_value    ddr4_emif     MEM_TZQCS_NS                                  {119.99996}
+        set_instance_parameter_value    ddr4_emif     MEM_OPERATING_FREQ_MHZ                        {1066.667}
     } else {
         set_instance_parameter_value    ddr4_emif     MEM_CL_CYC                                    {12.0}
         set_instance_parameter_value    ddr4_emif     MEM_CWL_CYC                                   {11.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCCD_L_NS                                 {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TCCD_S_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCKESR_CYC                                {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MAX_NS                         {1.5}
+        set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MIN_NS                         {1.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TCPDED_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TFAW_NS                                   {25.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TMOD_NS                                   {30.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TMPRR_NS                                  {1.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TMRD_NS                                   {10.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TRRD_L_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TRRD_S_NS                                 {5.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TWR_CRC_DM_NS                             {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TWTR_L_CRC_DM_NS                          {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TWTR_S_CRC_DM_NS                          {6.25}
+        set_instance_parameter_value    ddr4_emif     MEM_TXS_DLL_NS                                {1280.0}
+        set_instance_parameter_value    ddr4_emif     MEM_TZQCS_NS                                  {160.0}
+        set_instance_parameter_value    ddr4_emif     MEM_OPERATING_FREQ_MHZ                        {800}
     }
+
     set_instance_parameter_value    ddr4_emif     MEM_DIE_DENSITY_GBITS                         {16}
     set_instance_parameter_value    ddr4_emif     MEM_DIE_DQ_WIDTH                              {8}
     set_instance_parameter_value    ddr4_emif     MEM_DQ_VREF                                   {35}
@@ -244,52 +300,34 @@ proc create_emif_subsystem {} {
     set_instance_parameter_value    ddr4_emif     MEM_ODT_NOM                                   {off}
     set_instance_parameter_value    ddr4_emif     MEM_ODT_PARK                                  {4}
     set_instance_parameter_value    ddr4_emif     MEM_ODT_WR                                    {off}
-    set_instance_parameter_value    ddr4_emif     MEM_OPERATING_FREQ_MHZ                        {800}
-    set_instance_parameter_value    ddr4_emif     MEM_OPERATING_FREQ_MHZ_AUTOSET_EN             {1}
+    set_instance_parameter_value    ddr4_emif     MEM_OPERATING_FREQ_MHZ_AUTOSET_EN             {0}
     set_instance_parameter_value    ddr4_emif     MEM_PAGE_SIZE                                 {1024.0}
     set_instance_parameter_value    ddr4_emif     MEM_RANKS_SHARE_CK_EN                         {0}
     set_instance_parameter_value    ddr4_emif     MEM_RD_PREAMBLE_MODE                          {1.0}
     set_instance_parameter_value    ddr4_emif     MEM_SPEEDBIN                                  {3200AA}
-    set_instance_parameter_value    ddr4_emif     MEM_TCCD_DLR_NS                               {0}
-    set_instance_parameter_value    ddr4_emif     MEM_TCCD_L_NS                                 {6.25}
-    set_instance_parameter_value    ddr4_emif     MEM_TCCD_S_NS                                 {5.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TCKESR_CYC                                {5.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TCCD_DLR_NS                               {0.0}
     set_instance_parameter_value    ddr4_emif     MEM_TCKE_NS                                   {5.0}
     set_instance_parameter_value    ddr4_emif     MEM_TCKSRE_NS                                 {10.0}
     set_instance_parameter_value    ddr4_emif     MEM_TCKSRX_NS                                 {10.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MAX_NS                         {1.5}
-    set_instance_parameter_value    ddr4_emif     MEM_TCK_CL_CWL_MIN_NS                         {1.25}
-    set_instance_parameter_value    ddr4_emif     MEM_TCPDED_NS                                 {5.0}
     set_instance_parameter_value    ddr4_emif     MEM_TDQSCK_MAX_MIN_NS                         {0.16}
     set_instance_parameter_value    ddr4_emif     MEM_TDQSCK_NS                                 {0.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TFAW_DLR_NS                               {0}
-    set_instance_parameter_value    ddr4_emif     MEM_TFAW_NS                                   {25.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TMOD_NS                                   {30.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TMPRR_NS                                  {1.25}
-    set_instance_parameter_value    ddr4_emif     MEM_TMRD_NS                                   {10.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TFAW_DLR_NS                               {0.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRAS_MAX_NS                               {70200.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRAS_MIN_NS                               {32.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRAS_NS                                   {32.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRCD_NS                                   {13.75}
     set_instance_parameter_value    ddr4_emif     MEM_TRC_NS                                    {45.75}
     set_instance_parameter_value    ddr4_emif     MEM_TREFI_NS                                  {7800.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TRFC_DLR_NS                               {0}
+    set_instance_parameter_value    ddr4_emif     MEM_TRFC_DLR_NS                               {0.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRFC_NS                                   {350.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRP_NS                                    {13.75}
-    set_instance_parameter_value    ddr4_emif     MEM_TRRD_DLR_NS                               {0}
-    set_instance_parameter_value    ddr4_emif     MEM_TRRD_L_NS                                 {5.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TRRD_S_NS                                 {5.0}
+    set_instance_parameter_value    ddr4_emif     MEM_TRRD_DLR_NS                               {0.0}
     set_instance_parameter_value    ddr4_emif     MEM_TRTP_NS                                   {7.5}
-    set_instance_parameter_value    ddr4_emif     MEM_TWR_CRC_DM_NS                             {6.25}
     set_instance_parameter_value    ddr4_emif     MEM_TWR_NS                                    {15.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TWTR_L_CRC_DM_NS                          {6.25}
     set_instance_parameter_value    ddr4_emif     MEM_TWTR_L_NS                                 {7.5}
-    set_instance_parameter_value    ddr4_emif     MEM_TWTR_S_CRC_DM_NS                          {6.25}
     set_instance_parameter_value    ddr4_emif     MEM_TWTR_S_NS                                 {2.5}
     set_instance_parameter_value    ddr4_emif     MEM_TXP_NS                                    {6.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TXS_DLL_NS                                {1280.0}
     set_instance_parameter_value    ddr4_emif     MEM_TXS_NS                                    {360.0}
-    set_instance_parameter_value    ddr4_emif     MEM_TZQCS_NS                                  {160.0}
     set_instance_parameter_value    ddr4_emif     MEM_TZQINIT_CYC                               {1024.0}
     set_instance_parameter_value    ddr4_emif     MEM_TZQOPER_CYC                               {512.0}
     set_instance_parameter_value    ddr4_emif     MEM_VREF_DQ_X_RANGE                           {2}

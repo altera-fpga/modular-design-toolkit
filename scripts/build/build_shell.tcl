@@ -89,6 +89,7 @@ namespace eval build_shell {
         set v_hps_post          0
         set v_hps_post_agx      0
         set v_hps_post_agx5e    0
+        set v_hps_post_agx5e_es 0
         set v_ff_post_agx5e     0
 
         # misc flags
@@ -110,6 +111,8 @@ namespace eval build_shell {
                                              .jic based on default hps_debug.ihex and u-boot-spl-dtb.hex respectively"}
             { "hps_post_agx5e"        "0"   "Warning: experimental feature - Convert the output SOF into core.rbf and\
                                              .jic based on default u-boot-spl-dtb.hex"}
+            { "hps_post_agx5e_es"     "0"   "Warning: experimental feature - Convert the output SOF into core.rbf and\
+                                             .jic based on default u-boot-spl-dtb.hex for Engineering Silicon Device"}
             { "ff_post_agx5e"         "0"   "Warning: experimental feature - Attaching FSBL to output SOF"}
             { "update_sof"            "0"   "Compile the Nios2/NiosV software, and update the SOF file"}
             { "archive"               "0"   "Create an archive (.qar) of the project, following any compile options"}
@@ -154,6 +157,8 @@ namespace eval build_shell {
             puts stderr "                       hps_debug.ihex and u-boot-spl-dtb.hex files\n"
             puts stderr "     -hps_post_agx5e   (Optional) Warning: experimental feature - HPS post-processing.\
                                                 Split the SOF into core.rbf and .jic from provided\n"
+            puts stderr "     -hps_post_agx5e_es (Optional) Warning: experimental feature - HPS post-processing.\
+                                                Split the SOF into core.rbf and .jic from provided for the ES Device\n"
             puts stderr "     -ff_post_agx5e    (Optional) Warning: experimental feature - SOF post-processing.\
                                                 Attaching FSBL to output SOF\n"
             puts stderr "     -update_sof       (Optional) update the SOF without a hardware compile. Executes\
@@ -207,6 +212,9 @@ namespace eval build_shell {
         if {$v_opts_hash(hps_post_agx5e)} {
             set v_hps_post_agx5e 1
         }
+        if {$v_opts_hash(hps_post_agx5e_es)} {
+            set v_hps_post_agx5e_es 1
+        }
         if {$v_opts_hash(ff_post_agx5e)} {
             set v_ff_post_agx5e 1
         }
@@ -236,7 +244,7 @@ namespace eval build_shell {
         if {(${v_project_clean} == 0) && (${v_pd_generate} == 0) && (${v_sw_compile} == 0) &&
             (${v_hw_compile} == 0) && (${v_update_capability} == 0) && (${v_update_sof} == 0) &&
             (${v_hps_post} == 0) && (${v_hps_post_agx} == 0) && (${v_hps_post_agx5e} == 0) &&
-            (${v_ff_post_agx5e} == 0) &&(${v_archive_project} == 0)} {
+            (${v_hps_post_agx5e_es} == 0) && (${v_ff_post_agx5e} == 0) && (${v_archive_project} == 0)} {
 
             set v_pd_generate   1
             set v_sw_compile    1
@@ -342,6 +350,10 @@ namespace eval build_shell {
 
         if { (${v_hps_post_agx5e} == 1) && (${v_result} == 0) } {
             set v_result [catch {::build_shell::hps_post_agx5e_process} result_text result_options]
+        }
+
+        if { (${v_hps_post_agx5e_es} == 1) && (${v_result} == 0) } {
+            set v_result [catch {::build_shell::hps_post_agx5e_es_process} result_text result_options]
         }
 
         if { (${v_ff_post_agx5e} == 1) && (${v_result} == 0) } {
@@ -718,8 +730,9 @@ namespace eval build_shell {
 
     # Generate RBF and JIC using prebuilt SOF and (u-boot-spl-dtb).hex file
     # .hex  - U-Boot secondary program loader
+    # Engineering Silicon device
 
-    proc ::build_shell::hps_post_agx5e_process {} {
+    proc ::build_shell::hps_post_agx5e_es_process {} {
 
         variable v_proj_base_dir
         variable v_proj_name
@@ -753,6 +766,46 @@ namespace eval build_shell {
         return
 
     }
+
+
+    # Generate RBF and JIC using prebuilt SOF and (u-boot-spl-dtb).hex file
+    # .hex  - U-Boot secondary program loader
+
+    proc ::build_shell::hps_post_agx5e_process {} {
+
+        variable v_proj_base_dir
+        variable v_proj_name
+
+        # Find HPS U-Boot SPL
+        set v_hex_search_path [file join ${v_proj_base_dir} "scripts" "ext"]
+        set v_hex_list        [glob -directory ${v_hex_search_path} *.hex]
+        set v_num_hex         [llength ${v_hex_list}]
+
+        if {${v_num_hex} == 0} {
+            return -code error "no .hex file found in ${v_hex_search_path}"
+        } elseif {${v_num_hex} > 1} {
+            return -code error "multiple .hex files found in ${v_hex_search_path}"
+        }
+
+        set v_hex_path [lindex ${v_hex_list} 0]
+
+        # Generate RBF and JIC
+        set v_sof_path [file join ${v_proj_base_dir} "quartus" "output_files" "${v_proj_name}.sof"]
+        set v_jic_path [file join ${v_proj_base_dir} "quartus" "output_files" "${v_proj_name}.hps_first.jic"]
+
+        set v_args [list -c ${v_sof_path} ${v_jic_path} -o hps_path=${v_hex_path} -o device=MT25QU02G\
+                         -o flash_loader=A5ED065BB32AE4S -o mode=ASX4 -o hps=1]
+
+        set v_result [catch {::build_shell::run_quartus_executable "Create RBF and JIC (for QSPI programming)"\
+                             quartus_pfg ${v_args} 1} result_text result_options]
+        if {${v_result}!=0} {
+            return -code ${v_result} ${result_text}
+        }
+
+        return
+
+    }
+
 
     # Generate SOF using prebuilt SOF and (u-boot-spl-dtb).hex file
     # .hex  - U-Boot secondary program loader for FPGA First

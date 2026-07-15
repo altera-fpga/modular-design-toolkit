@@ -49,6 +49,9 @@ set_shell_parameter HPS_INIT                            "HPS FIRST"
 
 set_shell_parameter F2SDRAM_ADDR_WIDTH                  {32}
 
+# Connect USB pmo to external 
+set_shell_parameter GTS_RST_EN                    {1}
+set_shell_parameter GTS_RST_CLK_SRC                     ""
 
 # resolve interdependencies
 proc derive_parameters {param_array} {
@@ -291,6 +294,7 @@ proc create_cpu_subsystem {} {
 
     set v_emac2_txrx_clk_delay_en [get_shell_parameter ENABLE_EMAC2_TXRX_CLK_DELAY]
 
+    set v_gts_rst_en        [get_shell_parameter GTS_RST_EN]
 
     create_system ${v_instance_name}
     save_system   ${v_project_path}/rtl/shell/${v_instance_name}.qsys
@@ -304,8 +308,9 @@ proc create_cpu_subsystem {} {
 
     add_instance  agilex_hps                                intel_agilex_5_soc
     add_instance  emif_agilex_hps                           emif_io96b_hps
-    add_instance  gts_reset_sequencer                       intel_srcss_gts
-
+    if {${v_gts_rst_en}} {
+        add_instance  gts_reset_sequencer                   intel_srcss_gts
+    }
     add_instance  hps_axi_clk_bridge                        altera_clock_bridge
     add_instance  hps_axi_rst_bridge                        altera_reset_bridge
 
@@ -673,9 +678,11 @@ proc create_cpu_subsystem {} {
     apply_instance_preset emif_agilex_hps ${v_project_path}/non_qpds_ip/shell/${v_drv_ddr_preset_file}
 
     # gts_reset_sequencer
-    set_instance_parameter_value gts_reset_sequencer SRC_RS_DISABLE       {1}
-    set_instance_parameter_value gts_reset_sequencer NUM_LANES_SHORELINE  {1}
-    set_instance_parameter_value gts_reset_sequencer NUM_BANKS_SHORELINE  {1}
+    if {${v_gts_rst_en}} {
+        set_instance_parameter_value gts_reset_sequencer SRC_RS_DISABLE       {1}
+        set_instance_parameter_value gts_reset_sequencer NUM_LANES_SHORELINE  {1}
+        set_instance_parameter_value gts_reset_sequencer NUM_BANKS_SHORELINE  {1}
+    }
 
     # hps_axi_clk_bridge
     set_instance_parameter_value hps_axi_clk_bridge EXPLICIT_CLOCK_RATE   ${v_hps_axi_clk}
@@ -815,8 +822,10 @@ proc create_cpu_subsystem {} {
     add_interface           agilex_hps_h2f_reset    reset       source
     set_interface_property  agilex_hps_h2f_reset    EXPORT_OF   agilex_hps.h2f_reset
 
-    add_interface           o_pma_cu_clk            conduit     end
-    set_interface_property  o_pma_cu_clk            EXPORT_OF   gts_reset_sequencer.o_pma_cu_clk
+    if {${v_gts_rst_en}} {
+        add_interface           o_pma_cu_clk            conduit     end
+        set_interface_property  o_pma_cu_clk            EXPORT_OF   gts_reset_sequencer.o_pma_cu_clk
+    }
 
     # I2C0
     if {${v_i2c0_ext_en}} {
@@ -1244,7 +1253,7 @@ proc create_cpu_subsystem {} {
 
         add_connection  agilex_hps.hps2fpga               msgdma_256b.csr
         add_connection  agilex_hps.hps2fpga               msgdma_256b.descriptor_slave
-        add_connection  agilex_hps.fpga2hps_interrupt	    msgdma_256b.csr_irq
+        add_connection  agilex_hps.fpga2hps_interrupt_irq1  msgdma_256b.csr_irq
 
         add_connection  msgdma_256b.mm_read               limiter_removal_256b.s0
         add_connection  msgdma_256b.mm_read               msgdma_fpga_emif_cc_bridge.s0
@@ -1294,6 +1303,8 @@ proc edit_top_level_qsys {} {
 
     set v_i2c0_ext_en   [get_shell_parameter I2C0_EXT_EN]
     set v_i2c1_ext_en   [get_shell_parameter I2C1_EXT_EN]
+
+    set v_gts_rst_en  [get_shell_parameter GTS_RST_EN]
 
     load_system ${v_project_path}/rtl/${v_project_name}_qsys.qsys
 
@@ -1354,8 +1365,10 @@ proc edit_top_level_qsys {} {
 
     # Misc interfaces
     # NOTE : this is connected back to the USB 3.1 clock (only exported due to type mismatch)
-    add_interface           "${v_instance_name}_c_pma_cu_clk" conduit end
-    set_interface_property  "${v_instance_name}_c_pma_cu_clk" EXPORT_OF ${v_instance_name}.o_pma_cu_clk
+    if {${v_gts_rst_en}} {
+        add_interface           "${v_instance_name}_c_pma_cu_clk" conduit end
+        set_interface_property  "${v_instance_name}_c_pma_cu_clk" EXPORT_OF ${v_instance_name}.o_pma_cu_clk
+    }
 
     if {${v_num_gpo} != 0} {
         add_interface           "${v_instance_name}_o_hps_gpo"  conduit start
@@ -1454,9 +1467,9 @@ proc add_auto_connections {} {
     }
 
     if {${v_fpga_emif_enabled}} {
-        add_auto_connection ${v_instance_name} fpga_emif_clock    "emif_user_clk"
-        add_auto_connection ${v_instance_name} fpga_emif_reset    "emif_user_rst"
-        add_auto_connection ${v_instance_name} fpga_emif_avmm_m0  "emif_user_data"
+        add_auto_connection ${v_instance_name} fpga_emif_clock    "from_emif_clk_out"
+        add_auto_connection ${v_instance_name} fpga_emif_reset    "from_emif_ready_out"
+        add_auto_connection ${v_instance_name} fpga_emif_avmm_m0  "from_i_emif_s0_axi4"
     }
 
     set v_drv_msgdma_en 		[get_shell_parameter DRV_MSGDMA_EN]
@@ -1464,7 +1477,7 @@ proc add_auto_connections {} {
     if {$v_drv_msgdma_en} {
         set v_msgdma_agent  [get_shell_parameter MSGDMA_AGENT]
 
-        add_auto_connection ${v_instance_name} msgdma_fpga_emif_avmm_m0 "${v_msgdma_agent}_user_data"
+        add_auto_connection ${v_instance_name} msgdma_fpga_emif_avmm_m0 "from_i_${v_msgdma_agent}_s0_axi4"
     }
 }
 
@@ -1477,6 +1490,8 @@ proc edit_top_v_file {} {
     set v_i2c0_ext_en       [get_shell_parameter I2C0_EXT_EN]
     set v_i2c1_ext_en       [get_shell_parameter I2C1_EXT_EN]
 
+    set v_gts_rst_en  [get_shell_parameter GTS_RST_EN]
+    set v_gts_rst_clk_src   [get_shell_parameter GTS_RST_CLK_SRC]
     # add port connections to the instantiation of the top level qsys system
     # HPS
     add_top_port_list input    ""         hps_ref_clk
@@ -1551,7 +1566,9 @@ proc edit_top_v_file {} {
     #add_top_port_list output   ""         usb31_phy_tx_serial_n
     #add_top_port_list output   ""         usb31_phy_tx_serial_p
 
-    add_declaration_list wire ""  usb31_phy_pma_cpu_clk
+    if {${v_gts_rst_en}} {
+        add_declaration_list wire ""  usb31_phy_pma_cpu_clk
+    }
 
     if {${v_i2c0_ext_en}} {
         add_declaration_list wire ""            "hps_i2c0_scl_in"
@@ -1654,7 +1671,12 @@ proc edit_top_v_file {} {
     add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_usb_ctrl"      ""
     add_qsys_inst_exports_list    "${v_instance_name}_c_usb31_io_usb31_id"      "1'b0"
 
-    add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_pma_cpu_clk_clk"            usb31_phy_pma_cpu_clk
+    if {${v_gts_rst_en}} {
+        add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_pma_cpu_clk_clk"            usb31_phy_pma_cpu_clk
+    } else {
+        add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_pma_cpu_clk_clk"            ${v_gts_rst_clk_src}
+    }
+
     add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_refclk_p_clk"               "1'b0"
     add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_rx_serial_n_i_rx_serial_n"  "1'b0"
     add_qsys_inst_exports_list    "${v_instance_name}_i_usb31_phy_rx_serial_p_i_rx_serial_p"  "1'b0"
@@ -1674,8 +1696,9 @@ proc edit_top_v_file {} {
     #add_qsys_inst_exports_list    "${v_instance_name}_o_usb31_phy_tx_serial_p_o_tx_serial_p"  usb31_phy_tx_serial_p
 
     # Misc
-
-    add_qsys_inst_exports_list    "${v_instance_name}_c_pma_cu_clk_clk"         usb31_phy_pma_cpu_clk
+    if {${v_gts_rst_en}} {
+        add_qsys_inst_exports_list    "${v_instance_name}_c_pma_cu_clk_clk"         usb31_phy_pma_cpu_clk
+    }
 
     # HPS memory
 
