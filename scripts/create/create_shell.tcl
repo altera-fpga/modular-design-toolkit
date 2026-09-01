@@ -255,6 +255,12 @@ namespace eval create_shell {
             project_close
         }
 
+        # Last step: fold copied subsystem QSFs into ${project_name}.qsf (project must be closed)
+        set v_result [catch {::create_shell::consolidate_subsystem_qsfs v_parameter_array} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} ${v_result_text}
+        }
+
         if {$v_project_settings(i) == 1} {
             set v_result [catch {::quartus_verification_pkg::ip_list_generate ${v_project_path} \
                                    ${v_project_name}} v_result_text]
@@ -599,7 +605,8 @@ namespace eval create_shell {
 
     }
 
-    # Create subsystem QSF (assign IP and Qsys files)
+    # Write IP_FILE / QSYS_FILE (and top VERILOG_FILE) assignments directly into
+    # ${project_name}.qsf instead of creating per-subsystem or supplemental QSF files.
 
     proc ::create_shell::create_subsystem_qsf {parameter_array id} {
 
@@ -610,18 +617,23 @@ namespace eval create_shell {
 
         set v_type $v_parameter_array(${id},type)
 
-        set v_qsf_file      ""
-        set v_file_contents {}
+        set v_quartus_directory [file join ${v_project_path} quartus]
 
         if {[string equal "top" ${v_type}] == 1} {
 
-            set v_qsf_file     [file join ${v_project_path} quartus shell "${v_project_name}_supplemental.qsf"]
-
+            # Top: add wrapper Verilog and top-level Qsys to the project QSF
             set v_verilog_file [file join . .. rtl "${v_project_name}.v"]
             set v_qsys_file    [file join . .. rtl "${v_project_name}_qsys.qsys"]
 
-            lappend v_file_contents "set_global_assignment -name VERILOG_FILE ${v_verilog_file}"
-            lappend v_file_contents "set_global_assignment -name QSYS_FILE    ${v_qsys_file}"
+            set v_result [catch {set_global_assignment -name VERILOG_FILE ${v_verilog_file}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
+
+            set v_result [catch {set_global_assignment -name QSYS_FILE ${v_qsys_file}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} ${v_result_text}
+            }
 
         } else {
 
@@ -633,48 +645,42 @@ namespace eval create_shell {
 
             set v_subsystem_name $v_parameter_array(${id},name)
 
-            set v_quartus_directory [file join ${v_project_path} quartus]
-            set v_qsf_file          [file join ${v_quartus_directory} ${v_folder} "${v_subsystem_name}.qsf"]
-
             set v_ip_directory   [file join ${v_project_path} rtl ${v_folder} ip ${v_subsystem_name}]
             set v_qsys_directory [file join ${v_project_path} rtl ${v_folder}]
 
+            # Subsystem: add each .ip under rtl/{shell|user}/ip/<name>/ to the project QSF
             if {[file exists ${v_ip_directory}] == 1} {
 
                 set v_subsystem_ip [fileutil::findByPattern ${v_ip_directory} -glob -- *.ip]
 
                 foreach v_ip_file ${v_subsystem_ip} {
                     set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_ip_file}]
-                    lappend v_file_contents "set_global_assignment -name IP_FILE ${v_relative_file}"
+                    set v_result [catch {set_global_assignment -name IP_FILE ${v_relative_file}} v_result_text]
+                    if {${v_result} != 0} {
+                        return -code ${v_result} ${v_result_text}
+                    }
                 }
 
             }
 
+            # Subsystem: add <name>.qsys under rtl/{shell|user}/ to the project QSF
             if {[file exists ${v_qsys_directory}] == 1} {
 
                 set v_subsystem_qsys [fileutil::findByPattern ${v_qsys_directory} -glob -- "${v_subsystem_name}.qsys"]
 
                 foreach v_qsys_file ${v_subsystem_qsys} {
                     set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_qsys_file}]
-                    lappend v_file_contents "set_global_assignment -name QSYS_FILE ${v_relative_file}"
+                    set v_result [catch {set_global_assignment -name QSYS_FILE ${v_relative_file}} v_result_text]
+                    if {${v_result} != 0} {
+                        return -code ${v_result} ${v_result_text}
+                    }
                 }
 
             }
         }
 
-        if {[llength ${v_file_contents}] > 0} {
-
-            set v_result [catch {open ${v_qsf_file} a+} v_fid]
-            if {${v_result} != 0} {
-                return -code ${v_result} "Unable to create/open file (${v_qsf_file}):\n${v_fid}"
-            }
-
-            foreach v_line ${v_file_contents} {
-                puts ${v_fid} ${v_line}
-            }
-
-            close ${v_fid}
-        }
+        # Flush in-memory assignments to ${project_name}.qsf on disk
+        export_assignments
 
         return -code ok
 
@@ -713,20 +719,13 @@ namespace eval create_shell {
             file copy -force ${v_design_da_drc} ${v_da_drc_directory}
         }
 
-        set v_qsf_files_list {}
         set v_sdc_files_list {}
         set v_da_drc_files_list {}
 
         foreach v_subdir ${::create_shell::v_split_directories} {
 
-            set v_qsf_directory    [file join ${v_project_path} quartus ${v_subdir}]
             set v_sdc_directory    [file join ${v_project_path} sdc ${v_subdir}]
             set v_da_drc_directory [file join ${v_project_path} quartus ]
-
-            if {[file exists ${v_qsf_directory}] == 1} {
-                set v_temporary_list [fileutil::findByPattern ${v_qsf_directory} -glob -- *.qsf]
-                set v_qsf_files_list [concat ${v_qsf_files_list} ${v_temporary_list}]
-            }
 
             if {[file exists ${v_sdc_directory}] == 1} {
                 set v_temporary_list [fileutil::findByPattern ${v_sdc_directory} -glob -- *.sdc]
@@ -742,17 +741,8 @@ namespace eval create_shell {
 
         set v_quartus_directory [file join ${v_project_path} quartus]
 
-        foreach v_qsf_file ${v_qsf_files_list} {
-            set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_qsf_file}]
-
-            if {[string equal "${v_project_name}.qsf" ${v_relative_file}] != 1} {
-                set v_result [catch {set_global_assignment -name SOURCE_TCL_SCRIPT_FILE \
-                                       ${v_relative_file}} v_result_text]
-                if {${v_result} != 0} {
-                    return -code ${v_result} ${v_result_text}
-                }
-            }
-        }
+        # Subsystem QSF contents are inlined into ${project_name}.qsf by
+        # consolidate_subsystem_qsfs after project_close; do not SOURCE_TCL them.
 
         foreach v_sdc_file ${v_sdc_files_list} {
             set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_sdc_file}]
@@ -771,6 +761,148 @@ namespace eval create_shell {
         }
 
         return -code ok
+
+    }
+
+    # Append contents of copied subsystem / design / software QSFs into ${project_name}.qsf.
+    # Must run after project_close so Quartus does not overwrite the appended text.
+    # After content is written and the project QSF is closed, deletes quartus/shell and
+    # quartus/user (not individual QSF files).
+
+    proc ::create_shell::consolidate_subsystem_qsfs {parameter_array} {
+
+        upvar ${parameter_array} v_parameter_array
+
+        set v_project_path $v_parameter_array(project,path)
+        set v_project_name $v_parameter_array(project,name)
+
+        set v_quartus_directory [file join ${v_project_path} quartus]
+        set v_project_qsf       [file join ${v_quartus_directory} "${v_project_name}.qsf"]
+
+        if {[file exists ${v_project_qsf}] != 1} {
+            return -code error "Project QSF does not exist (${v_project_qsf})"
+        }
+
+        set v_qsf_files_list {}
+
+        foreach v_subdir ${::create_shell::v_split_directories} {
+            set v_qsf_directory [file join ${v_quartus_directory} ${v_subdir}]
+
+            if {[file exists ${v_qsf_directory}] == 1} {
+                set v_temporary_list [fileutil::findByPattern ${v_qsf_directory} -glob -- *.qsf]
+                set v_qsf_files_list [concat ${v_qsf_files_list} ${v_temporary_list}]
+            }
+        }
+
+        if {[llength ${v_qsf_files_list}] == 0} {
+            return -code ok
+        }
+
+        set v_result [catch {open ${v_project_qsf} a} v_fid]
+        if {${v_result} != 0} {
+            return -code ${v_result} "Unable to open file (${v_project_qsf}):\n${v_fid}"
+        }
+
+        foreach v_qsf_file ${v_qsf_files_list} {
+            set v_relative_file [fileutil::relative ${v_quartus_directory} ${v_qsf_file}]
+
+            if {[string equal "${v_project_name}.qsf" ${v_relative_file}] == 1} {
+                continue
+            }
+
+            set v_result [catch {open ${v_qsf_file} r} v_src_fid]
+            if {${v_result} != 0} {
+                close ${v_fid}
+                return -code ${v_result} "Unable to open file (${v_qsf_file}):\n${v_src_fid}"
+            }
+
+            set v_contents [read ${v_src_fid}]
+            close ${v_src_fid}
+
+            set v_contents [::create_shell::strip_qsf_copyright_banner ${v_contents}]
+
+            # Banner-only / empty QSF: nothing to append
+            if {[string trim ${v_contents}] eq ""} {
+                continue
+            }
+
+            set v_result [catch {
+                puts ${v_fid} ""
+                puts ${v_fid} "#------------------------------------------------------------------------------"
+                puts ${v_fid} "# Assignments from: ${v_relative_file}"
+                puts ${v_fid} "#------------------------------------------------------------------------------"
+                puts -nonewline ${v_fid} ${v_contents}
+
+                if {[string index ${v_contents} end] ne "\n"} {
+                    puts ${v_fid} ""
+                }
+            } v_result_text]
+
+            if {${v_result} != 0} {
+                close ${v_fid}
+                return -code ${v_result} "Failed writing assignments from (${v_relative_file}) to (${v_project_qsf}):\n${v_result_text}"
+            }
+        }
+
+        # Flush project QSF to disk before removing source directories
+        set v_result [catch {close ${v_fid}} v_result_text]
+        if {${v_result} != 0} {
+            return -code ${v_result} "Failed closing project QSF (${v_project_qsf}); quartus/shell and quartus/user not deleted:\n${v_result_text}"
+        }
+
+        foreach v_subdir ${::create_shell::v_split_directories} {
+            set v_qsf_directory [file join ${v_quartus_directory} ${v_subdir}]
+
+            if {[file exists ${v_qsf_directory}] != 1} {
+                continue
+            }
+
+            set v_result [catch {file delete -force ${v_qsf_directory}} v_result_text]
+            if {${v_result} != 0} {
+                return -code ${v_result} "Content was copied but failed to delete (${v_qsf_directory}):\n${v_result_text}"
+            }
+        }
+
+        return -code ok
+
+    }
+
+    # Remove a leading Altera-style hash-bar copyright banner, if present.
+    # Keeps any later section comments (e.g. "# set global assignments").
+
+    proc ::create_shell::strip_qsf_copyright_banner {contents} {
+
+        set v_lines [split ${contents} "\n"]
+        set v_index 0
+        set v_count [llength ${v_lines}]
+
+        # Skip leading blank lines
+        while {${v_index} < ${v_count} && [string trim [lindex ${v_lines} ${v_index}]] eq ""} {
+            incr v_index
+        }
+
+        # Leading line of 10+ '#' characters opens the banner
+        if {${v_index} >= ${v_count} || ![regexp {^#{10,}\s*$} [lindex ${v_lines} ${v_index}]]} {
+            return ${contents}
+        }
+
+        incr v_index
+
+        # Skip until closing hash bar
+        while {${v_index} < ${v_count} && ![regexp {^#{10,}\s*$} [lindex ${v_lines} ${v_index}]]} {
+            incr v_index
+        }
+
+        if {${v_index} < ${v_count}} {
+            incr v_index
+        }
+
+        # Skip blank lines after the banner
+        while {${v_index} < ${v_count} && [string trim [lindex ${v_lines} ${v_index}]] eq ""} {
+            incr v_index
+        }
+
+        return [join [lrange ${v_lines} ${v_index} end] "\n"]
 
     }
 

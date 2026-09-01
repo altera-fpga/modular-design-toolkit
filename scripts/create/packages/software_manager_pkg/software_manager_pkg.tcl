@@ -144,7 +144,7 @@ namespace eval software_manager_pkg {
 
         # check BSP type (NIOS only)
         if {[string equal -nocase ${v_cpu_type} "HPS"] != 1} {
-            set v_supported_bsps [list "hal" "ucosii"]
+            set v_supported_bsps [list "hal" "ucosii" "freertos"]
             set v_found          0
 
             if {[string equal -nocase ${v_cpu_type} "NIOSII"] == 1} {

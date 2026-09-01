@@ -35,6 +35,9 @@ set_shell_parameter H2F_ADDRESS_WIDTH                   {38}
 set_shell_parameter HPS_AXI_CLK                         {100000000}
 
 set_shell_parameter MSGDMA_ENABLED                      {0}
+set_shell_parameter MSGDMA_NUM_OF_INSTANCES             {1}
+set_shell_parameter MSGDMA_BASE_ADDRESS                 {0x00800000}
+set_shell_parameter MSGDMA_INST_OFFSET                  {0x0040}
 set_shell_parameter MSGDMA_AGENT_1                      {}
 set_shell_parameter MSGDMA_AGENT_1_CLK_FREQ             {200000000.0}
 set_shell_parameter MSGDMA_AGENT_1_ADDR_WIDTH           {0}
@@ -298,6 +301,7 @@ proc create_cpu_subsystem {} {
     set v_num_gpi                             [get_shell_parameter NUM_GPI]
 
     set v_msgdma_en                           [get_shell_parameter DRV_MSGDMA_EN]
+    set v_msgdma_num_of_instances             [get_shell_parameter MSGDMA_NUM_OF_INSTANCES]
     set v_msgdma_agent_2_en                   [get_shell_parameter DRV_MSGDMA_AGENT_2_EN]
 
     set v_f2h_en                              [get_shell_parameter F2H_EN]
@@ -323,6 +327,8 @@ proc create_cpu_subsystem {} {
     set v_fpga_emif_window_ctrl_base_address  [get_shell_parameter FPGA_EMIF_WINDOW_CTRL_BASE_ADDRESS]
 
     # Optional modular-scatter-gather DMA
+    set v_msgdma_base_address                 [get_shell_parameter MSGDMA_BASE_ADDRESS]
+    set v_msgdma_inst_offset                  [get_shell_parameter MSGDMA_INST_OFFSET]
     set v_msgdma_agent_1_addr_width           [get_shell_parameter MSGDMA_AGENT_1_ADDR_WIDTH]
     set v_msgdma_agent_1_clk_freq             [get_shell_parameter MSGDMA_AGENT_1_CLK_FREQ]
     set v_msgdma_agent_2_en                   [get_shell_parameter DRV_MSGDMA_AGENT_2_EN]
@@ -1255,8 +1261,12 @@ proc create_cpu_subsystem {} {
 
     # modular-scatter-gather DMA
     if {${v_msgdma_en}} {
+
+        if {${v_msgdma_num_of_instances} == 0} {
+            send_message ERROR "hps_create: MSGDMA Enabled but number of instances not specified"
+        }
+
         # Instances #
-        add_instance  msgdma_256b                   altera_msgdma
         add_instance  limiter_removal_256b          msgdma2axi4_256
         add_instance  f2sdram_adapt_256b            f2sdram_adapter_256
         add_instance  msgdma_fpga_emif_clk          altera_clock_bridge
@@ -1267,37 +1277,6 @@ proc create_cpu_subsystem {} {
             add_instance  msgdma_fpga_emif_2_rst        altera_reset_bridge
             add_instance  msgdma_fpga_emif_2            mm_ccb
         }
-
-        # Parameters #
-        # msgdma_256b
-        set_instance_parameter_value  msgdma_256b         BURST_ENABLE                      {1}
-        set_instance_parameter_value  msgdma_256b         BURST_WRAPPING_SUPPORT            {0}
-        set_instance_parameter_value  msgdma_256b         CHANNEL_ENABLE                    {0}
-        set_instance_parameter_value  msgdma_256b         CHANNEL_WIDTH                     {8}
-        set_instance_parameter_value  msgdma_256b         DATA_FIFO_DEPTH                   {16}
-        set_instance_parameter_value  msgdma_256b         DATA_WIDTH                        {256}
-        set_instance_parameter_value  msgdma_256b         DESCRIPTOR_FIFO_DEPTH             {8}
-        set_instance_parameter_value  msgdma_256b         ENHANCED_FEATURES                 {1}
-        set_instance_parameter_value  msgdma_256b         ERROR_ENABLE                      {0}
-        set_instance_parameter_value  msgdma_256b         ERROR_WIDTH                       {8}
-        set_instance_parameter_value  msgdma_256b         EXPOSE_ST_PORT                    {0}
-        set_instance_parameter_value  msgdma_256b         FIX_ADDRESS_WIDTH                 {64}
-        set_instance_parameter_value  msgdma_256b         MAX_BURST_COUNT                   {2}
-        set_instance_parameter_value  msgdma_256b         MAX_BYTE                          {4194304}
-        set_instance_parameter_value  msgdma_256b         MAX_STRIDE                        {1}
-        set_instance_parameter_value  msgdma_256b         MODE                              {0}
-        set_instance_parameter_value  msgdma_256b         NO_BYTEENABLES                    {1}
-        set_instance_parameter_value  msgdma_256b         PACKET_ENABLE                     {0}
-        set_instance_parameter_value  msgdma_256b         PREFETCHER_DATA_WIDTH             {32}
-        set_instance_parameter_value  msgdma_256b         PREFETCHER_ENABLE                 {0}
-        set_instance_parameter_value  msgdma_256b         PREFETCHER_MAX_READ_BURST_COUNT   {2}
-        set_instance_parameter_value  msgdma_256b         PREFETCHER_READ_BURST_ENABLE      {0}
-        set_instance_parameter_value  msgdma_256b         PROGRAMMABLE_BURST_ENABLE         {0}
-        set_instance_parameter_value  msgdma_256b         RESPONSE_PORT                     {2}
-        set_instance_parameter_value  msgdma_256b         STRIDE_ENABLE                     {0}
-        set_instance_parameter_value  msgdma_256b         TRANSFER_TYPE                     {Aligned Accesses}
-        set_instance_parameter_value  msgdma_256b         USE_FIX_ADDRESS_WIDTH             {1}
-        set_instance_parameter_value  msgdma_256b         WRITE_RESPONSE_ENABLE             {0}
 
         # msgdma_fpga_emif_clk
         set_instance_parameter_value  msgdma_fpga_emif_clk    EXPLICIT_CLOCK_RATE   ${v_msgdma_agent_1_clk_freq}
@@ -1351,7 +1330,6 @@ proc create_cpu_subsystem {} {
 
         # Connections #
         # hps_axi_clk_bridge
-        add_connection  hps_axi_clk_bridge.out_clk            msgdma_256b.clock
         add_connection  hps_axi_clk_bridge.out_clk            limiter_removal_256b.clock
         add_connection  hps_axi_clk_bridge.out_clk            f2sdram_adapt_256b.clock
         add_connection  hps_axi_clk_bridge.out_clk            msgdma_fpga_emif.s0_clk
@@ -1360,27 +1338,11 @@ proc create_cpu_subsystem {} {
         }
 
         # hps_axi_rst_bridge
-        add_connection  hps_axi_rst_bridge.out_reset          msgdma_256b.reset_n
         add_connection  hps_axi_rst_bridge.out_reset          limiter_removal_256b.reset
         add_connection  hps_axi_rst_bridge.out_reset          f2sdram_adapt_256b.reset
         add_connection  hps_axi_rst_bridge.out_reset          msgdma_fpga_emif.s0_reset
         if {${v_msgdma_agent_2_en}} {
             add_connection  hps_axi_rst_bridge.out_reset          msgdma_fpga_emif_2.s0_reset
-        }
-
-        # agilex_hps
-        add_connection  agilex_hps.hps2fpga                   msgdma_256b.csr
-        add_connection  agilex_hps.hps2fpga                   msgdma_256b.descriptor_slave
-        add_connection  agilex_hps.fpga2hps_interrupt_irq1    msgdma_256b.csr_irq
-
-        # msgdma_256b
-        add_connection  msgdma_256b.mm_read                   limiter_removal_256b.s0
-        add_connection  msgdma_256b.mm_write                  limiter_removal_256b.s1
-        add_connection  msgdma_256b.mm_read                   msgdma_fpga_emif.s0
-        add_connection  msgdma_256b.mm_write                  msgdma_fpga_emif.s0
-        if {${v_msgdma_agent_2_en}} {
-            add_connection  msgdma_256b.mm_read                   msgdma_fpga_emif_2.s0
-            add_connection  msgdma_256b.mm_write                  msgdma_fpga_emif_2.s0
         }
 
         # limiter_removal_256b
@@ -1426,37 +1388,101 @@ proc create_cpu_subsystem {} {
             set_interface_property  msgdma_fpga_emif_2_avmm_m0    EXPORT_OF   msgdma_fpga_emif_2.m0
         }
 
-        # Addresses #
-        set_connection_parameter_value msgdma_256b.mm_read/limiter_removal_256b.s0 \
-                                                                              baseAddress "0x000000000000"
-        set_connection_parameter_value msgdma_256b.mm_write/limiter_removal_256b.s1 \
-                                                                              baseAddress "0x000000000000"
         set_connection_parameter_value limiter_removal_256b.m0/f2sdram_adapt_256b.axi4_sub \
                                                                               baseAddress "0x000000000000"
-        set_connection_parameter_value msgdma_256b.mm_read/msgdma_fpga_emif.s0 \
-                                                                              baseAddress "0x001000000000"
-        set_connection_parameter_value msgdma_256b.mm_write/msgdma_fpga_emif.s0 \
-                                                                              baseAddress "0x001000000000"
-        if {${v_msgdma_agent_2_en}} {
-            set_connection_parameter_value msgdma_256b.mm_read/msgdma_fpga_emif_2.s0 \
-                                                                              baseAddress "0x001200000000"
-            set_connection_parameter_value msgdma_256b.mm_write/msgdma_fpga_emif_2.s0 \
-                                                                              baseAddress "0x001200000000"
-        }
-        set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b.csr \
-                                                                              baseAddress "0x00800000"
-        set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b.descriptor_slave \
-                                                                              baseAddress "0x00800020"
 
+        lock_avalon_base_address  f2sdram_adapt_256b.axi4_sub
+
+
+        for {set i 0} {${i} <= [expr ${v_msgdma_num_of_instances} - 1]} {incr i} {
+            # Instances #
+            add_instance  msgdma_256b_${i}             altera_msgdma
+
+            # Parameters #
+            # msgdma_256b
+            set_instance_parameter_value  msgdma_256b_${i}      BURST_ENABLE                      {1}
+            set_instance_parameter_value  msgdma_256b_${i}      BURST_WRAPPING_SUPPORT            {0}
+            set_instance_parameter_value  msgdma_256b_${i}      CHANNEL_ENABLE                    {0}
+            set_instance_parameter_value  msgdma_256b_${i}      CHANNEL_WIDTH                     {8}
+            set_instance_parameter_value  msgdma_256b_${i}      DATA_FIFO_DEPTH                   {16}
+            set_instance_parameter_value  msgdma_256b_${i}      DATA_WIDTH                        {256}
+            set_instance_parameter_value  msgdma_256b_${i}      DESCRIPTOR_FIFO_DEPTH             {8}
+            set_instance_parameter_value  msgdma_256b_${i}      ENHANCED_FEATURES                 {1}
+            set_instance_parameter_value  msgdma_256b_${i}      ERROR_ENABLE                      {0}
+            set_instance_parameter_value  msgdma_256b_${i}      ERROR_WIDTH                       {8}
+            set_instance_parameter_value  msgdma_256b_${i}      EXPOSE_ST_PORT                    {0}
+            set_instance_parameter_value  msgdma_256b_${i}      FIX_ADDRESS_WIDTH                 {64}
+            set_instance_parameter_value  msgdma_256b_${i}      MAX_BURST_COUNT                   {2}
+            set_instance_parameter_value  msgdma_256b_${i}      MAX_BYTE                          {4194304}
+            set_instance_parameter_value  msgdma_256b_${i}      MAX_STRIDE                        {1}
+            set_instance_parameter_value  msgdma_256b_${i}      MODE                              {0}
+            set_instance_parameter_value  msgdma_256b_${i}      NO_BYTEENABLES                    {1}
+            set_instance_parameter_value  msgdma_256b_${i}      PACKET_ENABLE                     {0}
+            set_instance_parameter_value  msgdma_256b_${i}      PREFETCHER_DATA_WIDTH             {32}
+            set_instance_parameter_value  msgdma_256b_${i}      PREFETCHER_ENABLE                 {0}
+            set_instance_parameter_value  msgdma_256b_${i}      PREFETCHER_MAX_READ_BURST_COUNT   {2}
+            set_instance_parameter_value  msgdma_256b_${i}      PREFETCHER_READ_BURST_ENABLE      {0}
+            set_instance_parameter_value  msgdma_256b_${i}      PROGRAMMABLE_BURST_ENABLE         {0}
+            set_instance_parameter_value  msgdma_256b_${i}      RESPONSE_PORT                     {2}
+            set_instance_parameter_value  msgdma_256b_${i}      STRIDE_ENABLE                     {0}
+            set_instance_parameter_value  msgdma_256b_${i}      TRANSFER_TYPE                     {Aligned Accesses}
+            set_instance_parameter_value  msgdma_256b_${i}      USE_FIX_ADDRESS_WIDTH             {1}
+            set_instance_parameter_value  msgdma_256b_${i}      WRITE_RESPONSE_ENABLE             {0}
+
+
+            # Connections #
+            # hps_axi_clk_bridge
+            add_connection  hps_axi_clk_bridge.out_clk            msgdma_256b_${i}.clock
+
+            # hps_axi_rst_bridge
+            add_connection  hps_axi_rst_bridge.out_reset          msgdma_256b_${i}.reset_n
+
+            # agilex_hps
+            add_connection  agilex_hps.hps2fpga                   msgdma_256b_${i}.csr
+            add_connection  agilex_hps.hps2fpga                   msgdma_256b_${i}.descriptor_slave
+            add_connection  agilex_hps.fpga2hps_interrupt_irq1    msgdma_256b_${i}.csr_irq
+
+            # msgdma_256b
+            add_connection  msgdma_256b_${i}.mm_read                   limiter_removal_256b.s0
+            add_connection  msgdma_256b_${i}.mm_write                  limiter_removal_256b.s1
+            add_connection  msgdma_256b_${i}.mm_read                   msgdma_fpga_emif.s0
+            add_connection  msgdma_256b_${i}.mm_write                  msgdma_fpga_emif.s0
+            if {${v_msgdma_agent_2_en}} {
+                add_connection  msgdma_256b_${i}.mm_read                   msgdma_fpga_emif_2.s0
+                add_connection  msgdma_256b_${i}.mm_write                  msgdma_fpga_emif_2.s0
+            }
+
+            # Addresses #
+            set_connection_parameter_value msgdma_256b_${i}.mm_read/limiter_removal_256b.s0 \
+                                                                                  baseAddress "0x000000000000"
+            set_connection_parameter_value msgdma_256b_${i}.mm_write/limiter_removal_256b.s1 \
+                                                                                  baseAddress "0x000000000000"
+            set_connection_parameter_value msgdma_256b_${i}.mm_read/msgdma_fpga_emif.s0 \
+                                                                                  baseAddress "0x001000000000"
+            set_connection_parameter_value msgdma_256b_${i}.mm_write/msgdma_fpga_emif.s0 \
+                                                                                  baseAddress "0x001000000000"
+            if {${v_msgdma_agent_2_en}} {
+                set_connection_parameter_value msgdma_256b_${i}.mm_read/msgdma_fpga_emif_2.s0 \
+                                                                                  baseAddress "0x001200000000"
+                set_connection_parameter_value msgdma_256b_${i}.mm_write/msgdma_fpga_emif_2.s0 \
+                                                                                  baseAddress "0x001200000000"
+            }
+            set v_msgdma_inst_addr_offset      [expr (${i} * ${v_msgdma_inst_offset})]
+
+            set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b_${i}.csr \
+                                            baseAddress [expr ${v_msgdma_base_address} + ${v_msgdma_inst_addr_offset}]
+            set_connection_parameter_value agilex_hps.hps2fpga/msgdma_256b_${i}.descriptor_slave \
+                                            baseAddress [expr ${v_msgdma_base_address} + ${v_msgdma_inst_addr_offset} + {0x20}]
+
+            lock_avalon_base_address  msgdma_256b_${i}.csr
+            lock_avalon_base_address  msgdma_256b_${i}.descriptor_slave
+        }
         lock_avalon_base_address  limiter_removal_256b.s0
         lock_avalon_base_address  limiter_removal_256b.s1
-        lock_avalon_base_address  f2sdram_adapt_256b.axi4_sub
         lock_avalon_base_address  msgdma_fpga_emif.s0
         if {${v_msgdma_agent_2_en}} {
             lock_avalon_base_address  msgdma_fpga_emif_2.s0
         }
-        lock_avalon_base_address  msgdma_256b.csr
-        lock_avalon_base_address  msgdma_256b.descriptor_slave
     }
 
 
